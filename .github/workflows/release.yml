@@ -1,0 +1,104 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run extension tests
+        run: npm run test --workspace=extension
+
+      - name: Lint extension
+        run: npm run lint --workspace=extension
+
+      - name: Validate server
+        run: npm run validate --workspace=server
+
+  build:
+    name: Build Extension
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify manifest version matches tag
+        run: |
+          MANIFEST_VERSION=$(node -e "console.log(require('./extension/manifest.json').version)")
+          TAG_VERSION="${{ steps.version.outputs.VERSION }}"
+          if [ "$MANIFEST_VERSION" != "$TAG_VERSION" ]; then
+            echo "ERROR: manifest.json version ($MANIFEST_VERSION) does not match tag (v$TAG_VERSION)"
+            exit 1
+          fi
+
+      - name: Build extension zip
+        run: |
+          cd extension
+          mkdir -p ../dist
+          zip -r ../dist/tweakr-v${{ steps.version.outputs.VERSION }}.zip \
+            manifest.json \
+            background.js \
+            content-utils.js \
+            content.js \
+            popup.html \
+            popup.js \
+            options.html \
+            options.js \
+            styles.css \
+            icon16.png \
+            icon24.png \
+            icon32.png \
+            icon48.png \
+            icon128.png \
+            PRIVACY.md
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tweakr-extension
+          path: dist/tweakr-v${{ steps.version.outputs.VERSION }}.zip
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tweakr-extension
+          path: dist/
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Tweakr v${{ steps.version.outputs.VERSION }}
+          generate_release_notes: true
+          files: dist/tweakr-v${{ steps.version.outputs.VERSION }}.zip

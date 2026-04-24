@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test-extension:
+    name: Test Extension
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test --workspace=extension
+
+      - name: Lint
+        run: npm run lint --workspace=extension
+
+      - name: Format check
+        run: npm run format:check --workspace=extension
+
+  validate-server:
+    name: Validate Server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax check
+        run: node -c server/server.js
+
+      - name: Lint
+        run: npm run lint --workspace=server
+
+      - name: Format check
+        run: npm run format:check --workspace=server
