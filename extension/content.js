@@ -423,6 +423,79 @@
   }
 
   // --- Actions ---
+  function showConfirmDialog(message, onConfirm, onCancel) {
+    // Backdrop
+    const backdrop = document.createElement("div");
+    backdrop.style.cssText =
+      "position:fixed;inset:0;z-index:2147483646;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;animation:dom-sync-panel-in 0.15s ease-out;";
+
+    // Dialog box
+    const dialog = document.createElement("div");
+    dialog.style.cssText =
+      "background:rgba(19,19,26,0.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px 24px;min-width:280px;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.4);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;";
+
+    // Message
+    const msg = document.createElement("p");
+    msg.textContent = message;
+    msg.style.cssText = "color:#e0e0e0;font-size:14px;margin:0 0 18px;line-height:1.5;";
+    dialog.appendChild(msg);
+
+    // Button row
+    const actions = document.createElement("div");
+    actions.style.cssText = "display:flex;gap:10px;justify-content:flex-end;";
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.textContent = "Cancel";
+    cancelBtn.style.cssText =
+      "padding:8px 18px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.06);color:#9ca3af;transition:background 0.15s;";
+    cancelBtn.addEventListener("mouseenter", () => {
+      cancelBtn.style.background = "rgba(255,255,255,0.1)";
+    });
+    cancelBtn.addEventListener("mouseleave", () => {
+      cancelBtn.style.background = "rgba(255,255,255,0.06)";
+    });
+
+    const confirmBtn = document.createElement("button");
+    confirmBtn.textContent = "Delete";
+    confirmBtn.style.cssText =
+      "padding:8px 18px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;background:rgba(244,63,94,0.2);color:#fb7185;transition:background 0.15s;";
+    confirmBtn.addEventListener("mouseenter", () => {
+      confirmBtn.style.background = "rgba(244,63,94,0.35)";
+    });
+    confirmBtn.addEventListener("mouseleave", () => {
+      confirmBtn.style.background = "rgba(244,63,94,0.2)";
+    });
+
+    actions.appendChild(cancelBtn);
+    actions.appendChild(confirmBtn);
+    dialog.appendChild(actions);
+    backdrop.appendChild(dialog);
+    document.body.appendChild(backdrop);
+
+    function cleanup() {
+      backdrop.remove();
+    }
+
+    cancelBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      cleanup();
+      if (onCancel) onCancel();
+    });
+    confirmBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      cleanup();
+      onConfirm();
+    });
+    backdrop.addEventListener("click", (e) => {
+      if (e.target === backdrop) {
+        cleanup();
+        if (onCancel) onCancel();
+      }
+    });
+
+    confirmBtn.focus();
+  }
+
   function handleDelete() {
     if (!currentTarget || !filePath) {
       showToast("No source file detected — check server is running", "error");
@@ -433,16 +506,23 @@
       return;
     }
 
-    const info = describeElement(currentTarget);
-    const msg = { action: "delete", ...info };
+    const tag = currentTarget.tagName.toLowerCase();
+    const id = currentTarget.id ? `#${currentTarget.id}` : "";
+    const text = (currentTarget.textContent || "").trim().slice(0, 30);
+    const label = text ? `"${text}"` : `<${tag}${id}>`;
 
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(msg));
-      currentTarget.style.opacity = "0.3";
-      currentTarget.style.transition = "opacity 0.3s";
-    } else {
-      showToast("Not connected to bridge server", "error");
-    }
+    showConfirmDialog(`Delete ${label} from source code?`, () => {
+      const info = describeElement(currentTarget);
+      const msg = { action: "delete", ...info };
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(msg));
+        currentTarget.style.opacity = "0.3";
+        currentTarget.style.transition = "opacity 0.3s";
+      } else {
+        showToast("Not connected to bridge server", "error");
+      }
+    });
     locked = false;
     hideTooltip();
   }
