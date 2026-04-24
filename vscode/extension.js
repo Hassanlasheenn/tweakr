@@ -74,8 +74,11 @@ function startServer() {
 
   if (serverPath) {
     // Set NODE_PATH so bundled server.js can find the ws module
-    const nodeModulesPath = path.join(__dirname, "node_modules");
-    env.NODE_PATH = nodeModulesPath;
+    // Include both the extension's node_modules and the project's node_modules
+    const extNodeModules = path.join(__dirname, "node_modules");
+    const projectNodeModules = path.join(cwd, "node_modules");
+    const sep = process.platform === "win32" ? ";" : ":";
+    env.NODE_PATH = [extNodeModules, projectNodeModules].join(sep);
 
     serverProcess = spawn(process.execPath, [serverPath], { cwd, env });
   } else {
@@ -205,12 +208,21 @@ function activate(context) {
 
   updateStatusBar("stopped");
 
-  // Auto-start if enabled
+  // Auto-start if enabled and workspace looks like a frontend project
   const autoStart = vscode.workspace
     .getConfiguration("tweakr")
     .get("autoStart", true);
   if (autoStart) {
-    startServer();
+    const wsPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (wsPath) {
+      const hasSrc = fs.existsSync(path.join(wsPath, "src"));
+      const hasIndex = fs.existsSync(path.join(wsPath, "index.html"));
+      if (hasSrc || hasIndex) {
+        startServer();
+      } else {
+        outputChannel.appendLine("No src/ or index.html found — skipping auto-start. Use 'Tweakr: Start Server' to start manually.");
+      }
+    }
   }
 }
 

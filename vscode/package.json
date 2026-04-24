@@ -25,7 +25,8 @@
   ],
   "activationEvents": [
     "workspaceContains:src/**",
-    "workspaceContains:index.html"
+    "workspaceContains:index.html",
+    "onStartupFinished"
   ],
   "main": "./extension.js",
   "contributes": {
