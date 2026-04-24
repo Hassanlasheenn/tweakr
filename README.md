@@ -4,6 +4,9 @@
 
 Tweakr puts you in control of your UI — directly from the browser. Instead of hunting through component files to change a color, fix a typo, or remove an element, just hover over it and click. Your source code updates instantly. No context switching. No file searching. Just point, click, and ship.
 
+[![Chrome Web Store](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/tweakr)
+[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Extension-007ACC?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=hassanlasheen.tweakr-vscode)
+[![GitHub](https://img.shields.io/github/stars/Hassanlasheenn/tweakr?style=social)](https://github.com/Hassanlasheenn/tweakr)
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)
 ![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)
 
