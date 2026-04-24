@@ -169,9 +169,9 @@ function updateStatusBar(state) {
 
   switch (state) {
     case "running":
-      statusBarItem.text = "T Tweakr";
+      statusBarItem.text = "$(check) Tweakr";
       statusBarItem.tooltip = "Tweakr is running — click to stop";
-      statusBarItem.color = "#34d399";
+      statusBarItem.color = "#16a34a";
       statusBarItem.command = "tweakr.stop";
       break;
     case "starting":
@@ -181,7 +181,7 @@ function updateStatusBar(state) {
       statusBarItem.command = "tweakr.stop";
       break;
     case "stopped":
-      statusBarItem.text = "T Tweakr";
+      statusBarItem.text = "$(circle-slash) Tweakr";
       statusBarItem.tooltip = "Tweakr stopped — click to start";
       statusBarItem.color = "#6b7280";
       statusBarItem.command = "tweakr.start";
