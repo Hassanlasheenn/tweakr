@@ -381,25 +381,19 @@
     const tw = tooltip.offsetWidth || 120;
     const th = tooltip.offsetHeight || 36;
 
-    // Position to the right of the element, vertically centered
-    let top = rect.top + (rect.height - th) / 2;
-    let left = rect.right + 8;
+    // Position above the element, right-aligned, overlapping the top edge
+    // The overlap ensures the mouse can move from element to tooltip without gap
+    let top = rect.top - th + 4; // 4px overlap into element
+    let left = rect.right - tw;
 
-    // If no room on right, try left side
-    if (left + tw > window.innerWidth - 4) {
-      left = rect.left - tw - 8;
+    // If no room above, position below with overlap into bottom edge
+    if (top < 2) {
+      top = rect.bottom - 4;
     }
 
-    // If no room on left either, place inside the element at the right edge
-    if (left < 4) {
-      left = rect.right - tw - 4;
-      top = rect.top - th - 4;
-      if (top < 2) top = rect.bottom + 4;
-    }
-
-    // Keep within viewport vertically
-    if (top < 2) top = 2;
-    if (top + th > window.innerHeight) top = window.innerHeight - th - 2;
+    // Keep within viewport
+    if (left < 4) left = 4;
+    if (left + tw > window.innerWidth - 4) left = window.innerWidth - tw - 4;
 
     tooltip.style.top = top + window.scrollY + "px";
     tooltip.style.left = left + window.scrollX + "px";
