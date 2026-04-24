@@ -1,27 +1,29 @@
 # Tweakr
 
-Visual code editor for frontend developers. Hover over any element on your page to edit text, modify CSS styles, delete elements, or undo changes — all synced directly to your source code.
+**Edit your UI, visually.**
+
+Tweakr puts you in control of your UI — directly from the browser. Instead of hunting through component files to change a color, fix a typo, or remove an element, just hover over it and click. Your source code updates instantly. No context switching. No file searching. Just point, click, and ship.
 
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)
 ![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)
 
 ## How It Works
 
-1. Start the bridge server in your project directory
-2. Open your app in Chrome
-3. Click the Tweakr extension icon and hit "Start Editing"
-4. Hover over any element — a toolbar appears with edit, style, delete, and undo buttons
-5. Changes are written directly to your source code files
+1. Open your project in VS Code — the server starts automatically
+2. Open your app in Chrome and click the Tweakr icon
+3. Hover over any element — a toolbar appears
+4. Edit text, modify CSS, delete elements, or undo — all in one click
+5. Your source code updates instantly. Check git to see the changes.
 
 ## Features
 
-- **Hover-to-edit** — click any element to change its text or remove it
-- **Live CSS editor** — inspect and modify source CSS properties with live preview
+- **Stop searching, start editing** — hover over any element to change text, styles, or remove it
+- **Live CSS editing** — modify colors, spacing, typography with instant preview
+- **Works everywhere** — React, Vue, Svelte, Angular, vanilla HTML
+- **Safe by default** — form inputs, dynamic data, and event handlers are protected
+- **One-click undo** — revert any change instantly
+- **Zero config** — VS Code extension auto-starts the server, Chrome extension handles the rest
 - **Scope-aware styling** — edit shared CSS globally or override for a single component
-- **BEM class generation** — automatically creates properly-named classes for unclassed elements
-- **Undo support** — revert any change with one click
-- **Test file sync** — automatically updates test files when elements change
-- **Protected elements** — form controls and dynamic content are safeguarded
 
 ## Quick Start
 

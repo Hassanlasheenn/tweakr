@@ -8,7 +8,7 @@ Tweakr does **not** collect, transmit, or store any personal data. No analytics,
 
 ## How Tweakr Works
 
-Tweakr is a developer tool that communicates exclusively with a local server running on your machine (`localhost`). All data stays on your computer.
+Tweakr lets you edit your UI visually from the browser. It communicates exclusively with a local server running on your machine (`localhost`). All data stays on your computer — nothing is sent to the internet.
 
 - **Element information** (tag name, class names, text content) is sent to your local server to identify which source code element to modify.
 - **Style changes** are sent to your local server to update CSS files in your project.
@@ -16,12 +16,12 @@ Tweakr is a developer tool that communicates exclusively with a local server run
 
 ## Permissions Justification
 
-| Permission | Why |
-|------------|-----|
-| `activeTab` | Required to inject the editing overlay into the page you're viewing |
-| `scripting` | Required to inject the content script and CSS into web pages |
-| `storage` | Stores your server host/port preferences (local only) |
-| `host_permissions` (localhost) | Required to communicate with the local bridge server |
+| Permission                     | Why                                                                 |
+| ------------------------------ | ------------------------------------------------------------------- |
+| `activeTab`                    | Required to inject the editing overlay into the page you're viewing |
+| `scripting`                    | Required to inject the content script and CSS into web pages        |
+| `storage`                      | Stores your server host/port preferences (local only)               |
+| `host_permissions` (localhost) | Required to communicate with the local bridge server                |
 
 ## Contact
 

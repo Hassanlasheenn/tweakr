@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Tweakr",
   "version": "1.0.0",
-  "description": "Hover over any element to visually edit or remove it from your source code.",
+  "description": "Stop digging through files. Hover over any element, edit it visually, and watch your source code update instantly.",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": ["http://localhost:3333/*"],
   "options_page": "options.html",

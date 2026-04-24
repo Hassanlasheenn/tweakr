@@ -1,6 +1,6 @@
 # Tweakr for VS Code
 
-Auto-starts the Tweakr bridge server when you open a project, enabling visual DOM editing via the Tweakr Chrome extension.
+Zero-config setup for Tweakr. Open your project — the server starts automatically. No terminal commands, no setup. Just open Chrome, hover over any element, and edit your UI visually. Source code updates instantly.
 
 ## How It Works
 
@@ -24,10 +24,10 @@ The status bar shows the server state — click it to toggle:
 
 ## Settings
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `tweakr.port` | `3333` | Bridge server port |
-| `tweakr.autoStart` | `true` | Auto-start when project opens |
+| Setting            | Default | Description                   |
+| ------------------ | ------- | ----------------------------- |
+| `tweakr.port`      | `3333`  | Bridge server port            |
+| `tweakr.autoStart` | `true`  | Auto-start when project opens |
 
 ## Requirements
 

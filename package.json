@@ -2,7 +2,7 @@
   "name": "tweakr",
   "private": true,
   "version": "1.0.0",
-  "description": "Visual code editor for frontend developers — hover to edit DOM elements in real time",
+  "description": "Tweakr — edit your frontend visually. Hover, click, change. Source code updates instantly.",
   "workspaces": ["extension", "server", "vscode"],
   "scripts": {
     "start": "npm run start --workspace=server",

@@ -1,7 +1,7 @@
 {
   "name": "tweakr",
   "version": "1.0.0",
-  "description": "Visual code editor for frontend developers — hover to edit DOM elements in real time",
+  "description": "Tweakr bridge server — powers visual UI editing from the browser to your source code.",
   "main": "server.js",
   "bin": {
     "tweakr": "bin/cli.js"

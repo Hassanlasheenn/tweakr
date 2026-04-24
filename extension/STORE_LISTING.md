@@ -1,39 +1,43 @@
 # Chrome Web Store Listing
 
 ## Short Description (132 chars max)
-Developer tool: hover over any element to visually edit text, styles, or delete it from your source code in real time.
+
+Stop digging through files. Hover over any element, edit it visually, and watch your source code update instantly.
 
 ## Detailed Description
 
-Tweakr is a visual code editing tool for frontend developers. Hover over any element on your page to see a floating toolbar with options to edit text, modify CSS styles, delete elements, or undo changes — all synced directly to your source code.
+**Tired of searching through dozens of files just to change a button color?**
 
-**Features:**
-- Hover-to-edit: click any element to change its text, CSS, or remove it
-- Live CSS editor: inspect and modify source CSS properties with live preview
-- Scope-aware styling: edit shared CSS globally or override for a single component
-- BEM class generation: automatically creates properly-named classes for unclassed elements
-- Undo support: revert any change with one click
-- Test file sync: automatically updates test files when elements change
-- Works with React, Vue, and any JSX/TSX-based framework
+Tweakr puts you in control of your UI — directly from the browser. Hover over any element on your page, and a floating toolbar appears. Edit text, modify CSS properties, delete elements, or undo changes — all with a single click. Your source code updates instantly. No more context switching between browser and editor.
+
+**Why developers love Tweakr:**
+
+- See it, click it, change it — hover over any element to edit text, styles, or remove it
+- Live CSS editing — modify colors, spacing, typography with instant preview and color picker
+- Works with every framework — React, Vue, Svelte, Angular, vanilla HTML/CSS/JS
+- Safe by default — form inputs, dynamic data, and event handlers are protected from accidental changes
+- One-click undo — made a mistake? Revert instantly
+- Scope-aware — edit shared CSS globally or override for just one component
+- Zero config with VS Code — install the Tweakr VS Code extension and the server starts automatically
+
+**How it works:**
+
+1. Install Tweakr in Chrome and VS Code (or run `npx tweakr` in your project)
+2. Open your app in the browser
+3. Click the Tweakr icon and hit "Start Editing"
+4. Hover, click, edit. Check git to see your changes.
+
+**Built for your workflow:**
+
+Tweakr writes clean, production-ready code. CSS changes go to your stylesheets (never inline styles). New classes follow BEM naming. Test files update automatically. Everything shows up in git, ready for code review.
 
 **Requirements:**
-Tweakr requires the Tweakr bridge server running locally on your machine. Install and start it with:
-```
-npm install -g tweakr-server
-tweakr start
-```
-Or run from source: `node server.js` in the tweakr-server directory.
-
-**For developers only:** This is a development tool. It modifies source code files on your local machine via a localhost server.
+Tweakr requires a local bridge server. The easiest setup is the Tweakr VS Code extension (auto-starts the server). Or run `npx tweakr` from your project directory.
 
 ## Category
+
 Developer Tools
 
-## Screenshots Required
-- At least 1 screenshot at 1280x800 or 640x400
-- Capture: the extension tooltip overlay on a sample React page
-- Capture: the CSS style panel with scope badges
-- Capture: the options page
+## Screenshots
 
-## Promotional Tile
-- 440x280 PNG/JPG (optional but recommended)
+5 screenshots at 1280x800 in `screenshots/` directory

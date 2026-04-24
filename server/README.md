@@ -1,6 +1,6 @@
-# DOM Sync — Edit Source Files by Clicking DOM Elements
+# Tweakr Bridge Server
 
-A developer tool with two parts: a Chrome extension that lets you hover over DOM elements and delete/edit them, and a local Node.js bridge server that applies those changes to your source files.
+The engine behind Tweakr. This Node.js server receives edit commands from the Chrome extension via WebSocket and applies them directly to your source code files — text changes, CSS modifications, element deletions, and undo operations. You focus on the UI, the server handles the files.
 
 ## Architecture
 

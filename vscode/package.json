@@ -1,7 +1,7 @@
 {
   "name": "tweakr-vscode",
   "displayName": "Tweakr",
-  "description": "Auto-starts the Tweakr bridge server for visual DOM editing via the Chrome extension",
+  "description": "Edit your UI visually from the browser. Tweakr auto-starts so you can hover, click, and change — source code updates instantly.",
   "version": "1.0.0",
   "publisher": "hassanlasheen",
   "license": "MIT",
