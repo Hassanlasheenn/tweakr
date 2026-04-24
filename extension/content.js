@@ -427,7 +427,7 @@
     // Backdrop
     const backdrop = document.createElement("div");
     backdrop.style.cssText =
-      "position:fixed;inset:0;z-index:2147483646;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;animation:dom-sync-panel-in 0.15s ease-out;";
+      "position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;animation:dom-sync-panel-in 0.15s ease-out;";
 
     // Dialog box
     const dialog = document.createElement("div");
@@ -492,6 +492,9 @@
         if (onCancel) onCancel();
       }
     });
+
+    // Hide tooltip while dialog is open
+    if (tooltip) tooltip.style.display = "none";
 
     confirmBtn.focus();
   }
