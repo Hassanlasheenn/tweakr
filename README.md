@@ -49,7 +49,7 @@ The server runs on `http://localhost:3333` by default.
 
 ### 4. Use it
 
-1. Open your React/Vue/frontend app in Chrome
+1. Open your web app in Chrome
 2. Click the Tweakr icon in the toolbar
 3. Click "Start Editing"
 4. Hover over elements and use the floating toolbar
@@ -104,9 +104,12 @@ npm run dev
 
 ## Works With
 
-- React (JSX/TSX)
-- Vue (SFC)
-- Any frontend framework with JSX/TSX components
+- **Vanilla HTML/CSS/JS** — plain `.html` files with linked stylesheets
+- **React** — JSX/TSX components
+- **Vue** — Single File Components (`.vue`)
+- **Svelte** — `.svelte` components
+- **Angular** — component templates
+- **Any framework** that renders HTML to the DOM
 
 ## Privacy
 

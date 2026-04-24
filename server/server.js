@@ -7,6 +7,65 @@ const { WebSocketServer } = require("ws");
 const PORT = 3333;
 const LOG_FILE = path.join(__dirname, "changes.log");
 
+// --- File type detection for multi-framework support ---
+const SOURCE_EXTENSIONS = /\.(jsx|tsx|vue|svelte|html|htm|js|ts|component\.html)$/;
+
+function getFileType(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === ".jsx" || ext === ".tsx") return "jsx";
+  if (ext === ".vue") return "vue";
+  if (ext === ".svelte") return "svelte";
+  if (ext === ".html" || ext === ".htm") return "html";
+  return "js"; // .js, .ts, etc.
+}
+
+function usesClassName(filePath) {
+  const type = getFileType(filePath);
+  return type === "jsx"; // only JSX uses className=
+}
+
+function getClassAttr(filePath) {
+  return usesClassName(filePath) ? "className" : "class";
+}
+
+function getDynamicExprPattern(filePath) {
+  const type = getFileType(filePath);
+  if (type === "jsx" || type === "svelte") return /\{([^}]+)\}/g;
+  if (type === "vue" || type === "html") return /\{\{([^}]+)\}\}/g;
+  return /\{([^}]+)\}/g;
+}
+
+function addCssImport(source, cssFileName, filePath) {
+  const type = getFileType(filePath);
+  if (source.includes(cssFileName)) return source; // already imported
+  if (type === "html" || type === "htm") {
+    // Insert <link> tag before </head> or at top
+    const linkTag = `  <link rel="stylesheet" href="${cssFileName}">\n`;
+    if (source.includes("</head>")) {
+      return source.replace("</head>", `${linkTag}</head>`);
+    }
+    return linkTag + source;
+  }
+  // JS/JSX/TSX/Vue/Svelte: ES6 import
+  return `import "./${cssFileName}";\n` + source;
+}
+
+function getEventHandlerPattern(filePath) {
+  const type = getFileType(filePath);
+  const patterns = [/\bon[A-Z]\w+=\{/]; // JSX: onClick={...}
+  if (type !== "jsx") {
+    patterns.push(/\bon\w+=["']/); // HTML: onclick="..."
+  }
+  if (type === "vue") {
+    patterns.push(/@\w+=/); // Vue: @click="..."
+    patterns.push(/v-on:\w+=/); // Vue: v-on:click="..."
+  }
+  if (type === "svelte") {
+    patterns.push(/on:\w+=/); // Svelte: on:click={...}
+  }
+  return patterns;
+}
+
 // Ensure log file exists
 if (!fs.existsSync(LOG_FILE)) {
   fs.writeFileSync(LOG_FILE, "");
@@ -146,7 +205,7 @@ function checkDynamicContent(source, info) {
   if (!contentMatch) return { isDynamic: false, expressions: [] };
 
   const content = contentMatch[1];
-  const exprPattern = /\{([^}]+)\}/g;
+  const exprPattern = getDynamicExprPattern(info.file || "");
   const expressions = [];
   let exprMatch;
   while ((exprMatch = exprPattern.exec(content)) !== null) {
@@ -168,7 +227,8 @@ function hasEventHandlers(source, info) {
   );
   const m = source.match(openPattern);
   if (!m) return false;
-  return /\bon[A-Z]\w+=\{/.test(m[0]);
+  const patterns = getEventHandlerPattern(info.file || "");
+  return patterns.some((p) => p.test(m[0]));
 }
 
 function validateAction(action, source, info) {
@@ -336,8 +396,19 @@ function describeElement(info) {
   return desc;
 }
 
-// --- Build test page from source JSX ---
-const DEFAULT_SOURCE = "src/components/LoginForm.jsx";
+// --- Build test page from source ---
+// Auto-detect first source file, fallback to common patterns
+function getDefaultSource() {
+  const srcDir = path.resolve(process.cwd(), "src");
+  if (fs.existsSync(srcDir)) {
+    const files = findComponents(srcDir);
+    if (files.length > 0) return path.relative(process.cwd(), files[0]);
+  }
+  // Fallback: check for index.html in project root
+  if (fs.existsSync(path.resolve(process.cwd(), "index.html"))) return "index.html";
+  return "src/index.html";
+}
+let DEFAULT_SOURCE = null; // lazy-initialized
 
 function jsxToHtml(jsx) {
   // Strip import/export/function wrapper — extract just the JSX return block
@@ -385,6 +456,7 @@ function jsxToHtml(jsx) {
 }
 
 function buildPageFromSource() {
+  if (!DEFAULT_SOURCE) DEFAULT_SOURCE = getDefaultSource();
   let jsx = "";
   const sourcePath = path.resolve(process.cwd(), DEFAULT_SOURCE);
 
@@ -445,7 +517,7 @@ function findComponents(dir, results = []) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory() && entry.name !== "node_modules") {
       findComponents(full, results);
-    } else if (/\.(jsx|tsx)$/.test(entry.name)) {
+    } else if (SOURCE_EXTENSIONS.test(entry.name)) {
       results.push(full);
     }
   }
@@ -468,11 +540,24 @@ function findAllCssFiles(dir, results = []) {
   return results;
 }
 
-function findImportedCss(jsxSource, componentDir) {
+function findImportedCss(source, componentDir) {
   const imports = [];
+  // ES6 import: import "./file.css"
   const importPattern = /import\s+["']([^"']+\.(?:css|scss))["']/g;
   let m;
-  while ((m = importPattern.exec(jsxSource)) !== null) {
+  while ((m = importPattern.exec(source)) !== null) {
+    const resolved = path.resolve(componentDir, m[1]);
+    if (fs.existsSync(resolved)) imports.push(resolved);
+  }
+  // HTML link tag: <link rel="stylesheet" href="file.css">
+  const linkPattern = /<link[^>]+href=["']([^"']+\.(?:css|scss))["'][^>]*>/g;
+  while ((m = linkPattern.exec(source)) !== null) {
+    const resolved = path.resolve(componentDir, m[1]);
+    if (fs.existsSync(resolved)) imports.push(resolved);
+  }
+  // Vue/Svelte <style src="...">
+  const styleSrcPattern = /<style[^>]+src=["']([^"']+\.(?:css|scss))["'][^>]*>/g;
+  while ((m = styleSrcPattern.exec(source)) !== null) {
     const resolved = path.resolve(componentDir, m[1]);
     if (fs.existsSync(resolved)) imports.push(resolved);
   }
@@ -585,8 +670,8 @@ function extractElements(source) {
     const attrs = match[2] || "";
     const content = (match[3] || "").trim();
 
-    // Skip JSX wrappers and fragments
-    if (/^[A-Z]/.test(tag) || tag === "Fragment") continue;
+    // Skip framework component tags (PascalCase), fragments, and template wrappers
+    if (/^[A-Z]/.test(tag) || tag === "Fragment" || tag === "template" || tag === "script" || tag === "style") continue;
 
     const idMatch = attrs.match(/id=["']([^"']+)["']/);
     const classMatch = attrs.match(/class(?:Name)?=["']([^"']+)["']/);
@@ -662,7 +747,7 @@ const server = http.createServer((req, res) => {
 
   // GET /agents/styles?file=src/components/LoginForm.jsx&tag=button&id=submit-btn&classes=btn,primary
   if (req.method === "GET" && url.pathname === "/agents/styles") {
-    const componentFile = url.searchParams.get("file") || DEFAULT_SOURCE;
+    const componentFile = url.searchParams.get("file") || (DEFAULT_SOURCE || (DEFAULT_SOURCE = getDefaultSource()));
     const tag = url.searchParams.get("tag") || "";
     const id = url.searchParams.get("id") || "";
     const classes = (url.searchParams.get("classes") || "").split(",").filter(Boolean);
@@ -772,10 +857,14 @@ const server = http.createServer((req, res) => {
           );
           const m = jsxSource.match(openPattern);
           if (m) {
-            const styleMatch = m[0].match(/style=\{\{([^}]*)\}\}/);
+            // Parse JSX style={{ }} or HTML style="..."
+            const jsxStyleMatch = m[0].match(/style=\{\{([^}]*)\}\}/);
+            const htmlStyleMatch = m[0].match(/style=["']([^"']*)["']/);
+            const styleMatch = jsxStyleMatch || htmlStyleMatch;
             if (styleMatch) {
               inlineStyles = {};
-              styleMatch[1].split(",").forEach((pair) => {
+              const delim = jsxStyleMatch ? "," : ";";
+              styleMatch[1].split(delim).forEach((pair) => {
                 const colonIdx = pair.indexOf(":");
                 if (colonIdx === -1) return;
                 const k = pair.slice(0, colonIdx).trim();
@@ -887,7 +976,7 @@ const server = http.createServer((req, res) => {
 
   // GET /agents/plan — get current state for planning
   if (req.method === "GET" && url.pathname === "/agents/plan") {
-    const targetFile = url.searchParams.get("file") || DEFAULT_SOURCE;
+    const targetFile = url.searchParams.get("file") || (DEFAULT_SOURCE || (DEFAULT_SOURCE = getDefaultSource()));
     const filePath = path.resolve(process.cwd(), targetFile);
     try {
       const source = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf-8") : null;
@@ -1137,10 +1226,7 @@ wss.on("connection", (socket) => {
         if (!componentCssFile) {
           componentCssFile = path.join(dir, `${base}.css`);
           cssSource = "";
-          const importLine = `import "./${base}.css";\n`;
-          if (!source.includes(importLine) && !source.includes(`"./${base}.css"`)) {
-            source = importLine + source;
-          }
+          source = addCssImport(source, `${base}.css`, file);
         } else {
           cssSource = cache.readFile(componentCssFile) || "";
         }
@@ -1160,10 +1246,7 @@ wss.on("connection", (socket) => {
         if (!componentCssFile) {
           componentCssFile = path.join(dir, `${base}.css`);
           cssSource = "";
-          const importLine = `import "./${base}.css";\n`;
-          if (!source.includes(importLine) && !source.includes(`"./${base}.css"`)) {
-            source = importLine + source;
-          }
+          source = addCssImport(source, `${base}.css`, file);
         }
         cssFilePath = componentCssFile;
         if (!cssSource && fs.existsSync(cssFilePath)) {
@@ -1197,7 +1280,7 @@ wss.on("connection", (socket) => {
             const withoutClose = openTag.slice(0, -closingBracket.length);
             source = source.replace(
               openTag,
-              `${withoutClose} className="${bemClass}"${closingBracket}`
+              `${withoutClose} ${getClassAttr(file)}="${bemClass}"${closingBracket}`
             );
           }
         }
