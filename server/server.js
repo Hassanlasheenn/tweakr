@@ -671,7 +671,14 @@ function extractElements(source) {
     const content = (match[3] || "").trim();
 
     // Skip framework component tags (PascalCase), fragments, and template wrappers
-    if (/^[A-Z]/.test(tag) || tag === "Fragment" || tag === "template" || tag === "script" || tag === "style") continue;
+    if (
+      /^[A-Z]/.test(tag) ||
+      tag === "Fragment" ||
+      tag === "template" ||
+      tag === "script" ||
+      tag === "style"
+    )
+      continue;
 
     const idMatch = attrs.match(/id=["']([^"']+)["']/);
     const classMatch = attrs.match(/class(?:Name)?=["']([^"']+)["']/);
@@ -747,7 +754,8 @@ const server = http.createServer((req, res) => {
 
   // GET /agents/styles?file=src/components/LoginForm.jsx&tag=button&id=submit-btn&classes=btn,primary
   if (req.method === "GET" && url.pathname === "/agents/styles") {
-    const componentFile = url.searchParams.get("file") || (DEFAULT_SOURCE || (DEFAULT_SOURCE = getDefaultSource()));
+    const componentFile =
+      url.searchParams.get("file") || DEFAULT_SOURCE || (DEFAULT_SOURCE = getDefaultSource());
     const tag = url.searchParams.get("tag") || "";
     const id = url.searchParams.get("id") || "";
     const classes = (url.searchParams.get("classes") || "").split(",").filter(Boolean);
@@ -976,7 +984,8 @@ const server = http.createServer((req, res) => {
 
   // GET /agents/plan — get current state for planning
   if (req.method === "GET" && url.pathname === "/agents/plan") {
-    const targetFile = url.searchParams.get("file") || (DEFAULT_SOURCE || (DEFAULT_SOURCE = getDefaultSource()));
+    const targetFile =
+      url.searchParams.get("file") || DEFAULT_SOURCE || (DEFAULT_SOURCE = getDefaultSource());
     const filePath = path.resolve(process.cwd(), targetFile);
     try {
       const source = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf-8") : null;
