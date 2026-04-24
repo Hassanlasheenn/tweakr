@@ -37,7 +37,7 @@ async function init() {
     }
   } catch {
     statusEl.className = "status offline";
-    statusEl.textContent = "Server offline — run: node server.js";
+    statusEl.textContent = "Server offline — run: npx tweakr";
     activateBtn.disabled = true;
     return;
   }

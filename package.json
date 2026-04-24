@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "description": "Visual code editor for frontend developers — hover to edit DOM elements in real time",
-  "workspaces": ["extension", "server"],
+  "workspaces": ["extension", "server", "vscode"],
   "scripts": {
     "start": "npm run start --workspace=server",
     "dev": "npm run dev --workspace=server",

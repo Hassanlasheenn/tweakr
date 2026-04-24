@@ -1,8 +1,25 @@
 {
-  "name": "tweakr-server",
+  "name": "tweakr",
   "version": "1.0.0",
-  "description": "Bridge server for Tweakr Chrome extension — WebSocket + HTTP API",
+  "description": "Visual code editor for frontend developers — hover to edit DOM elements in real time",
   "main": "server.js",
+  "bin": {
+    "tweakr": "bin/cli.js"
+  },
+  "files": [
+    "server.js",
+    "bin/cli.js",
+    "README.md"
+  ],
+  "keywords": [
+    "tweakr",
+    "dom",
+    "css",
+    "editor",
+    "chrome-extension",
+    "developer-tools",
+    "visual-editor"
+  ],
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",

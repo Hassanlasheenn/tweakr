@@ -1,0 +1,59 @@
+{
+  "name": "tweakr-vscode",
+  "displayName": "Tweakr",
+  "description": "Auto-starts the Tweakr bridge server for visual DOM editing via the Chrome extension",
+  "version": "1.0.0",
+  "publisher": "hassanlasheen",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.84.0"
+  },
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "keywords": [
+    "tweakr",
+    "dom",
+    "css",
+    "visual-editor",
+    "chrome"
+  ],
+  "activationEvents": [
+    "workspaceContains:src/**",
+    "workspaceContains:index.html"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "tweakr.start",
+        "title": "Tweakr: Start Server"
+      },
+      {
+        "command": "tweakr.stop",
+        "title": "Tweakr: Stop Server"
+      },
+      {
+        "command": "tweakr.restart",
+        "title": "Tweakr: Restart Server"
+      }
+    ],
+    "configuration": {
+      "title": "Tweakr",
+      "properties": {
+        "tweakr.port": {
+          "type": "number",
+          "default": 3333,
+          "description": "Port for the Tweakr bridge server"
+        },
+        "tweakr.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start the server when a project is opened"
+        }
+      }
+    }
+  },
+  "icon": "icon.png"
+}

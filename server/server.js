@@ -4,7 +4,7 @@ const path = require("path");
 const { execSync } = require("child_process");
 const { WebSocketServer } = require("ws");
 
-const PORT = 3333;
+const PORT = parseInt(process.env.TWEAKR_PORT || process.env.PORT, 10) || 3333;
 const LOG_FILE = path.join(__dirname, "changes.log");
 
 // --- File type detection for multi-framework support ---

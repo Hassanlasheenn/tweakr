@@ -25,34 +25,40 @@ Visual code editor for frontend developers. Hover over any element on your page 
 
 ## Quick Start
 
-### 1. Install dependencies
+### Option A: VS Code Extension (Recommended)
+
+1. Install the **Tweakr** VS Code extension from the marketplace
+2. Open your project in VS Code — the server starts automatically
+3. Open your app in Chrome and activate the Tweakr Chrome extension
+4. Hover over elements and use the floating toolbar
+
+The status bar shows "Tweakr" with the server state. Click it to start/stop.
+
+### Option B: npx (no install)
 
 ```bash
-npm install
+cd your-project
+npx tweakr
 ```
 
-### 2. Start the bridge server
+Then open Chrome and activate the Tweakr extension.
+
+### Option C: Global install
 
 ```bash
-cd server
-npm start
+npm install -g tweakr
+cd your-project
+tweakr
 ```
 
-The server runs on `http://localhost:3333` by default.
-
-### 3. Load the extension
+### Load the Chrome extension
 
 1. Open `chrome://extensions` in Chrome
 2. Enable "Developer mode" (top right)
 3. Click "Load unpacked"
 4. Select the `extension/` folder
 
-### 4. Use it
-
-1. Open your web app in Chrome
-2. Click the Tweakr icon in the toolbar
-3. Click "Start Editing"
-4. Hover over elements and use the floating toolbar
+Or install from the Chrome Web Store (coming soon).
 
 ## Project Structure
 
@@ -68,10 +74,14 @@ tweakr/
 │   ├── styles.css          # All extension UI styles
 │   └── test/               # Vitest test suite
 │
-├── server/                 # Bridge server (Node.js)
+├── server/                 # Bridge server (npm package)
 │   ├── server.js           # HTTP + WebSocket server
-│   ├── CLAUDE.md           # Server documentation
+│   ├── bin/cli.js          # CLI entry point (npx tweakr)
 │   └── package.json
+│
+├── vscode/                 # VS Code extension
+│   ├── extension.js        # Auto-starts server on project open
+│   └── package.json        # VS Code extension manifest
 │
 └── package.json            # Root workspace config
 ```
