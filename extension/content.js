@@ -1,6 +1,12 @@
 (() => {
   "use strict";
 
+  // --- Analytics (local only, no network) ---
+  const analytics = globalThis.TweakrAnalytics || {};
+  const track = analytics.trackAction || (() => {});
+  const trackFeature = analytics.trackFeature || (() => {});
+  const trackFramework = analytics.trackFramework || (() => {});
+
   // --- Configuration ---
   let SERVER_URL = "http://localhost:3333";
   let WS_URL = "ws://localhost:3333";
@@ -520,6 +526,8 @@
 
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify(msg));
+        track("delete");
+        trackFramework(info.file || "");
         currentTarget.style.opacity = "0.3";
         currentTarget.style.transition = "opacity 0.3s";
       } else {
@@ -548,6 +556,7 @@
   function handleUndo() {
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ action: "undo", file: filePath || "" }));
+      track("undo");
     } else {
       showToast("Not connected to bridge server", "error");
     }
@@ -1091,6 +1100,9 @@
         saveBtn.style.opacity = "0.5";
         saveBtn.style.pointerEvents = "none";
         ws.send(JSON.stringify(msg));
+        track("style");
+        trackFeature(selectedScope === "local" ? "scopeLocal" : "scopeGlobal");
+        trackFramework(info.file || "");
         for (const [key, val] of Object.entries(changedStyles)) {
           initialValues[key] = val;
         }
@@ -1166,6 +1178,8 @@
       const msg = { action: "edit", ...info, newText };
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify(msg));
+        track("edit");
+        trackFramework(info.file || "");
         for (const node of el.childNodes) {
           if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
             node.textContent = newText;

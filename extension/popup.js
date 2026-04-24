@@ -80,7 +80,7 @@ activateBtn.addEventListener("click", async () => {
     });
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      files: ["content-utils.js", "content.js"],
+      files: ["analytics.js", "content-utils.js", "content.js"],
     });
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },

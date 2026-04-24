@@ -26,7 +26,12 @@ function discoverServer() {
 
   // 2. Project local — user ran `npm install tweakr` in their project
   if (workspacePath) {
-    const projectLocal = path.join(workspacePath, "node_modules", "tweakr", "server.js");
+    const projectLocal = path.join(
+      workspacePath,
+      "node_modules",
+      "tweakr",
+      "server.js",
+    );
     if (fs.existsSync(projectLocal)) {
       return { mode: "project", serverPath: projectLocal };
     }
@@ -68,7 +73,9 @@ function startServer() {
   outputChannel.clear();
   outputChannel.appendLine(`Tweakr starting on port ${port}...`);
   outputChannel.appendLine(`Working directory: ${cwd}`);
-  outputChannel.appendLine(`Server source: ${mode}${serverPath ? ` (${serverPath})` : ""}`);
+  outputChannel.appendLine(
+    `Server source: ${mode}${serverPath ? ` (${serverPath})` : ""}`,
+  );
 
   const env = { ...process.env, TWEAKR_PORT: String(port) };
 
@@ -130,7 +137,7 @@ function startServer() {
         updateStatusBar("running");
         outputChannel.appendLine("Server is ready.");
         vscode.window.showInformationMessage(
-          "Tweakr is ready! Open Chrome and click the Tweakr extension to start editing."
+          "Tweakr is ready! Open Chrome and click the Tweakr extension to start editing.",
         );
       }
       res.resume();
@@ -191,19 +198,60 @@ function updateStatusBar(state) {
   statusBarItem.show();
 }
 
+// --- Anonymous usage stats (local only, never transmitted) ---
+let extensionContext = null;
+
+function trackVSCodeStat(key) {
+  if (!extensionContext) return;
+  const stats = extensionContext.globalState.get("tweakr_stats", {});
+  stats[key] = (stats[key] || 0) + 1;
+  stats.lastUsed = new Date().toISOString();
+  extensionContext.globalState.update("tweakr_stats", stats);
+}
+
 function activate(context) {
+  extensionContext = context;
   outputChannel = vscode.window.createOutputChannel("Tweakr");
   statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
-    100
+    100,
   );
 
+  // Track activation
+  const stats = context.globalState.get("tweakr_stats", {});
+  if (!stats.firstUsed) stats.firstUsed = new Date().toISOString();
+  stats.activations = (stats.activations || 0) + 1;
+  stats.lastUsed = new Date().toISOString();
+  context.globalState.update("tweakr_stats", stats);
+
   context.subscriptions.push(
-    vscode.commands.registerCommand("tweakr.start", startServer),
-    vscode.commands.registerCommand("tweakr.stop", stopServer),
-    vscode.commands.registerCommand("tweakr.restart", restartServer),
+    vscode.commands.registerCommand("tweakr.start", () => {
+      trackVSCodeStat("serverStarts");
+      startServer();
+    }),
+    vscode.commands.registerCommand("tweakr.stop", () => {
+      trackVSCodeStat("serverStops");
+      stopServer();
+    }),
+    vscode.commands.registerCommand("tweakr.restart", () => {
+      trackVSCodeStat("serverRestarts");
+      restartServer();
+    }),
+    vscode.commands.registerCommand("tweakr.stats", () => {
+      const s = context.globalState.get("tweakr_stats", {});
+      outputChannel.clear();
+      outputChannel.appendLine("Tweakr Usage Stats (local only)");
+      outputChannel.appendLine("================================");
+      outputChannel.appendLine(`First used:      ${s.firstUsed || "—"}`);
+      outputChannel.appendLine(`Last used:       ${s.lastUsed || "—"}`);
+      outputChannel.appendLine(`Activations:     ${s.activations || 0}`);
+      outputChannel.appendLine(`Server starts:   ${s.serverStarts || 0}`);
+      outputChannel.appendLine(`Server stops:    ${s.serverStops || 0}`);
+      outputChannel.appendLine(`Server restarts: ${s.serverRestarts || 0}`);
+      outputChannel.show();
+    }),
     statusBarItem,
-    outputChannel
+    outputChannel,
   );
 
   updateStatusBar("stopped");
@@ -220,7 +268,9 @@ function activate(context) {
       if (hasSrc || hasIndex) {
         startServer();
       } else {
-        outputChannel.appendLine("No src/ or index.html found — skipping auto-start. Use 'Tweakr: Start Server' to start manually.");
+        outputChannel.appendLine(
+          "No src/ or index.html found — skipping auto-start. Use 'Tweakr: Start Server' to start manually.",
+        );
       }
     }
   }

@@ -42,6 +42,10 @@
       {
         "command": "tweakr.restart",
         "title": "Tweakr: Restart Server"
+      },
+      {
+        "command": "tweakr.stats",
+        "title": "Tweakr: Show Usage Stats"
       }
     ],
     "configuration": {
