@@ -324,7 +324,7 @@
     const styleBtn = document.createElement("button");
     styleBtn.className = "dom-sync-style-btn";
     styleBtn.innerHTML =
-      '<span style="font-family:\'SF Mono\',\'Fira Code\',\'JetBrains Mono\',monospace;font-size:9px;font-weight:700;letter-spacing:0.5px;line-height:1;">CSS</span>';
+      "<span style=\"font-family:'SF Mono','Fira Code','JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.5px;line-height:1;\">CSS</span>";
     styleBtn.title = "Edit styles";
     styleBtn.setAttribute("aria-label", "Edit styles");
     styleBtn.setAttribute("tabindex", "0");
