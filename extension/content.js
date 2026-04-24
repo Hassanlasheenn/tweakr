@@ -323,7 +323,7 @@
     const styleBtn = document.createElement("button");
     styleBtn.className = "dom-sync-style-btn";
     styleBtn.innerHTML =
-      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.37 2.63a2.12 2.12 0 0 1 3 3L14 13l-4 1 1-4 7.37-7.37z"/><path d="M9 3H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5"/></svg>';
+      '<span style="font-family:\'SF Mono\',\'Fira Code\',\'JetBrains Mono\',monospace;font-size:9px;font-weight:700;letter-spacing:0.5px;line-height:1;">CSS</span>';
     styleBtn.title = "Edit styles";
     styleBtn.setAttribute("aria-label", "Edit styles");
     styleBtn.setAttribute("tabindex", "0");
