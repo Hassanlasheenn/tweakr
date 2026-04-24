@@ -1142,71 +1142,70 @@
   // --- Hover handling (guarded to prevent duplicate listeners on re-injection) ---
   if (!window.__domSyncListenersAttached) {
     window.__domSyncListenersAttached = true;
-  document.addEventListener(
-    "mouseover",
-    (e) => {
-      if (!e.target) return;
-      if (inlineEdit) return;
+    document.addEventListener(
+      "mouseover",
+      (e) => {
+        if (!e.target) return;
+        if (inlineEdit) return;
 
-      // Mouse entered tooltip — cancel any pending hide
-      if (isOwnUI(e.target)) {
-        locked = true;
+        // Mouse entered tooltip — cancel any pending hide
+        if (isOwnUI(e.target)) {
+          locked = true;
+          if (hideTimeout) {
+            clearTimeout(hideTimeout);
+            hideTimeout = null;
+          }
+          return;
+        }
+
+        if (locked) return;
+        if (!canInteract(e.target)) return;
+
         if (hideTimeout) {
           clearTimeout(hideTimeout);
           hideTimeout = null;
         }
-        return;
-      }
 
-      if (locked) return;
-      if (!canInteract(e.target)) return;
+        if (currentTarget && currentTarget !== e.target) {
+          currentTarget.classList.remove("dom-sync-highlight");
+        }
 
-      if (hideTimeout) {
-        clearTimeout(hideTimeout);
-        hideTimeout = null;
-      }
+        currentTarget = e.target;
+        currentTarget.classList.add("dom-sync-highlight");
+        updateTooltipButtons(currentTarget);
+        showTooltipAt(currentTarget);
+      },
+      true
+    );
 
-      if (currentTarget && currentTarget !== e.target) {
-        currentTarget.classList.remove("dom-sync-highlight");
-      }
+    document.addEventListener(
+      "mouseout",
+      (e) => {
+        if (inlineEdit) return;
 
-      currentTarget = e.target;
-      currentTarget.classList.add("dom-sync-highlight");
-      updateTooltipButtons(currentTarget);
-      showTooltipAt(currentTarget);
-    },
-    true
-  );
+        // Leaving tooltip
+        if (isOwnUI(e.target) && !isOwnUI(e.relatedTarget)) {
+          locked = false;
+          scheduleHide();
+          return;
+        }
 
-  document.addEventListener(
-    "mouseout",
-    (e) => {
-      if (inlineEdit) return;
-
-      // Leaving tooltip
-      if (isOwnUI(e.target) && !isOwnUI(e.relatedTarget)) {
-        locked = false;
+        if (locked) return;
         scheduleHide();
-        return;
-      }
+      },
+      true
+    );
 
-      if (locked) return;
-      scheduleHide();
-    },
-    true
-  );
-
-  // Click outside to dismiss inline edit
-  document.addEventListener(
-    "mousedown",
-    (e) => {
-      if (inlineEdit && !isOwnUI(e.target)) {
-        closeInlineEdit();
-      }
-    },
-    true
-  );
-
+    // Click outside to dismiss inline edit
+    document.addEventListener(
+      "mousedown",
+      (e) => {
+        if (inlineEdit && !isOwnUI(e.target)) {
+          closeInlineEdit();
+        }
+      },
+      true
+    );
   } // end listener dedup guard
 
   // --- Respond to popup ping ---

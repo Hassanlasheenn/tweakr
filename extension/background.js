@@ -1,7 +1,5 @@
 chrome.action.onClicked.addListener((tab) => {
-  chrome.scripting
-    .insertCSS({ target: { tabId: tab.id }, files: ["styles.css"] })
-    .catch(() => {});
+  chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ["styles.css"] }).catch(() => {});
   chrome.scripting
     .executeScript({ target: { tabId: tab.id }, files: ["content-utils.js", "content.js"] })
     .catch(() => {});
