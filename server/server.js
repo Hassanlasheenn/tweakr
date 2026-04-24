@@ -11,6 +11,8 @@ const LOG_FILE = path.join(__dirname, "changes.log");
 const SOURCE_EXTENSIONS = /\.(jsx|tsx|vue|svelte|html|htm|js|ts|component\.html)$/;
 
 function getFileType(filePath) {
+  // Angular component templates: *.component.html
+  if (/\.component\.html$/.test(filePath)) return "angular";
   const ext = path.extname(filePath).toLowerCase();
   if (ext === ".jsx" || ext === ".tsx") return "jsx";
   if (ext === ".vue") return "vue";
@@ -31,6 +33,7 @@ function getClassAttr(filePath) {
 function getDynamicExprPattern(filePath) {
   const type = getFileType(filePath);
   if (type === "jsx" || type === "svelte") return /\{([^}]+)\}/g;
+  if (type === "angular") return /\{\{([^}]+)\}\}|\[[\w.]+\]="[^"]+"/g;
   if (type === "vue" || type === "html") return /\{\{([^}]+)\}\}/g;
   return /\{([^}]+)\}/g;
 }
@@ -62,6 +65,9 @@ function getEventHandlerPattern(filePath) {
   }
   if (type === "svelte") {
     patterns.push(/on:\w+=/); // Svelte: on:click={...}
+  }
+  if (type === "angular") {
+    patterns.push(/\(\w+\)="/); // Angular: (click)="handler()"
   }
   return patterns;
 }
@@ -215,6 +221,19 @@ function checkDynamicContent(source, info) {
     if (expr.startsWith('"') || expr.startsWith("'") || expr.startsWith("`")) continue;
     expressions.push(expr);
   }
+  // Also check for Angular/Vue property bindings in the opening tag
+  const fileType = getFileType(info.file || "");
+  if (fileType === "angular" || fileType === "vue") {
+    const openTag = m[0].match(/^<[^>]+>/);
+    if (openTag) {
+      // Angular: [property]="expr", *ngIf="expr", *ngFor="expr"
+      // Vue: :prop="expr", v-if="expr", v-for="expr"
+      if (/\[[\w.]+\]="|^\*ng|\sv-(?:if|for|show|model)=/.test(openTag[0])) {
+        expressions.push("(bound property)");
+      }
+    }
+  }
+
   return { isDynamic: expressions.length > 0, expressions };
 }
 
@@ -561,6 +580,19 @@ function findImportedCss(source, componentDir) {
     const resolved = path.resolve(componentDir, m[1]);
     if (fs.existsSync(resolved)) imports.push(resolved);
   }
+  // Angular @Component({ styleUrls: ['./component.css'] })
+  const styleUrlsPattern = /styleUrls\s*:\s*\[([^\]]*)\]/g;
+  while ((m = styleUrlsPattern.exec(source)) !== null) {
+    const urls = m[1].match(/["']([^"']+)["']/g) || [];
+    for (const url of urls) {
+      const clean = url.replace(/["']/g, "");
+      if (/\.(css|scss)$/.test(clean)) {
+        const resolved = path.resolve(componentDir, clean);
+        if (fs.existsSync(resolved)) imports.push(resolved);
+      }
+    }
+  }
+  // Angular @Component({ styles: [] }) — inline, skip (handled elsewhere)
   return imports;
 }
 
@@ -670,13 +702,16 @@ function extractElements(source) {
     const attrs = match[2] || "";
     const content = (match[3] || "").trim();
 
-    // Skip framework component tags (PascalCase), fragments, and template wrappers
+    // Skip framework component tags (PascalCase), fragments, template wrappers, and Angular directives
     if (
       /^[A-Z]/.test(tag) ||
       tag === "Fragment" ||
       tag === "template" ||
       tag === "script" ||
-      tag === "style"
+      tag === "style" ||
+      tag === "ng-container" ||
+      tag === "ng-template" ||
+      tag === "ng-content"
     )
       continue;
 
