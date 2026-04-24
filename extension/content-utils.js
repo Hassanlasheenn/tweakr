@@ -88,8 +88,16 @@
     return DELETABLE_TAGS.has(el.tagName.toLowerCase());
   }
 
+  function canStyle(el) {
+    if (isIgnoredElement(el)) return false;
+    // Any visible element can be styled
+    const tag = el.tagName.toLowerCase();
+    if (tag === "#text" || tag === "#comment") return false;
+    return true;
+  }
+
   function canInteract(el) {
-    return canEdit(el) || canDelete(el);
+    return canEdit(el) || canDelete(el) || canStyle(el);
   }
 
   globalThis.TweakrUtils = {
@@ -104,6 +112,7 @@
     isFormControl,
     canEdit,
     canDelete,
+    canStyle,
     canInteract,
   };
 })();

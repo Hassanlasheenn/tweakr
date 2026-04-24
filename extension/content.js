@@ -45,6 +45,7 @@
     isFormControl,
     canEdit,
     canDelete,
+    canStyle,
     canInteract,
   } = globalThis.TweakrUtils || {};
 
@@ -1028,16 +1029,19 @@
 
     document.body.appendChild(inlineEdit);
 
-    // Position below element
+    // Position below element, scroll into view if needed
     const rect = el.getBoundingClientRect();
     let top = rect.bottom + 8 + window.scrollY;
-    if (rect.bottom + 400 > window.innerHeight) top = rect.top - 400 + window.scrollY;
-    if (top < 0) top = 8;
     let left = Math.max(4, rect.left + window.scrollX);
     if (left + 280 > window.innerWidth) left = window.innerWidth - 284;
 
     inlineEdit.style.top = top + "px";
     inlineEdit.style.left = left + "px";
+
+    // Scroll panel into view if it's below the viewport
+    requestAnimationFrame(() => {
+      inlineEdit.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
   }
 
   // --- Inline Edit ---
@@ -1111,15 +1115,18 @@
 
     document.body.appendChild(inlineEdit);
 
-    // Position below element
+    // Position below element, scroll into view if needed
     const rect = el.getBoundingClientRect();
     let top = rect.bottom + 8 + window.scrollY;
-    if (rect.bottom + 120 > window.innerHeight) top = rect.top - 120 + window.scrollY;
     let left = Math.max(4, rect.left + window.scrollX);
     if (left + 280 > window.innerWidth) left = window.innerWidth - 284;
 
     inlineEdit.style.top = top + "px";
     inlineEdit.style.left = left + "px";
+
+    requestAnimationFrame(() => {
+      inlineEdit.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
   }
 
   // Get only the element's own text (not children's)
