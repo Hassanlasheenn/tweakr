@@ -1,0 +1,221 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        background: transparent;
+      }
+      body {
+        width: 280px;
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          system-ui,
+          sans-serif;
+        background: linear-gradient(145deg, #0f0c29, #1a1145, #24243e);
+        color: #f0f0f5;
+        padding: 24px;
+        margin: 0;
+        position: relative;
+        overflow: hidden;
+      }
+      body::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
+        pointer-events: none;
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+        position: relative;
+      }
+      .logo-mark {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #6366f1, #696cf5);
+        border-radius: 50%;
+        flex-shrink: 0;
+        box-shadow: 0 2px 10px rgba(99, 102, 241, 0.25);
+      }
+      .logo-mark span {
+        font-family:
+          "SF Compact",
+          "SF Pro Display",
+          -apple-system,
+          "Helvetica Neue",
+          Arial,
+          sans-serif;
+        font-size: 21px;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1;
+      }
+      h1 {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: -0.3px;
+        color: #fff;
+      }
+      .tagline {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.4);
+        font-weight: 400;
+        margin-top: 2px;
+      }
+
+      .status {
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        display: none;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 14px;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
+      .status.ready {
+        display: flex;
+        background: rgba(16, 185, 129, 0.08);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.12);
+      }
+      .status.ready::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #34d399;
+        box-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+        flex-shrink: 0;
+      }
+      .status.offline {
+        display: flex;
+        background: rgba(244, 63, 94, 0.08);
+        color: #fb7185;
+        border: 1px solid rgba(244, 63, 94, 0.12);
+      }
+      .status.offline::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #fb7185;
+        flex-shrink: 0;
+      }
+      .status.active {
+        display: flex;
+        background: rgba(16, 185, 129, 0.08);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.12);
+        justify-content: center;
+      }
+      .status.active::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #34d399;
+        box-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+        flex-shrink: 0;
+        animation: pulse 2s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      .activate-btn {
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.2px;
+        cursor: pointer;
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.2s ease,
+          opacity 0.2s ease;
+        box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      .activate-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 24px rgba(99, 102, 241, 0.4);
+      }
+      .activate-btn:active {
+        transform: translateY(0) scale(0.98);
+      }
+      .activate-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+      .activate-btn.hidden {
+        display: none;
+      }
+
+      .hint {
+        margin-top: 16px;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.25);
+        line-height: 1.5;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="logo-mark">
+        <span>T</span>
+      </div>
+      <div>
+        <h1>Tweakr</h1>
+        <p class="tagline">Visual code editor</p>
+      </div>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <button id="activate" class="activate-btn" disabled>Start Editing</button>
+
+    <div id="hint" class="hint">
+      Hover over any element to edit or remove it from your source code.
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

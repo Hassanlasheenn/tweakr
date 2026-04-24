@@ -1,0 +1,400 @@
+/* ===== Element Highlight ===== */
+.dom-sync-highlight {
+  outline: none !important;
+  box-shadow:
+    0 0 0 2px rgba(99, 102, 241, 0.5),
+    0 0 12px rgba(99, 102, 241, 0.15) !important;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease !important;
+}
+
+/* ===== Floating Tooltip ===== */
+#dom-sync-tooltip {
+  position: absolute;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+  background: rgba(19, 19, 26, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+  pointer-events: auto;
+  animation: dom-sync-tooltip-in 0.15s ease-out;
+}
+
+@keyframes dom-sync-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+#dom-sync-tooltip button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    transform 0.12s ease;
+}
+
+#dom-sync-tooltip button:hover {
+  transform: scale(1.1);
+}
+
+#dom-sync-tooltip button:active {
+  transform: scale(0.92);
+}
+
+#dom-sync-tooltip .dom-sync-delete-btn {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+}
+#dom-sync-tooltip .dom-sync-delete-btn:hover {
+  background: rgba(244, 63, 94, 0.28);
+}
+
+#dom-sync-tooltip .dom-sync-edit-btn {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+}
+#dom-sync-tooltip .dom-sync-edit-btn:hover {
+  background: rgba(99, 102, 241, 0.28);
+}
+
+#dom-sync-tooltip .dom-sync-style-btn {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+#dom-sync-tooltip .dom-sync-style-btn:hover {
+  background: rgba(16, 185, 129, 0.28);
+}
+
+#dom-sync-tooltip .dom-sync-undo-btn {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+#dom-sync-tooltip .dom-sync-undo-btn:hover {
+  background: rgba(251, 191, 36, 0.28);
+}
+
+/* ===== Inline Edit / Style Panel ===== */
+#dom-sync-inline-edit {
+  position: absolute;
+  max-height: 420px;
+  overflow-y: auto;
+  z-index: 2147483647;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  background: rgba(19, 19, 26, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 14px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+  min-width: 260px;
+  animation: dom-sync-panel-in 0.2s ease-out;
+}
+
+@keyframes dom-sync-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+#dom-sync-inline-edit .dom-sync-edit-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #9ca3af;
+  min-width: 75px;
+}
+
+#dom-sync-inline-edit .dom-sync-style-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#dom-sync-inline-edit input[type="text"] {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(28, 28, 39, 0.8);
+  color: #f0f0f5;
+  font-size: 13px;
+  font-family: "SF Mono", "Fira Code", "JetBrains Mono", monospace;
+  outline: none;
+  min-width: 140px;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+#dom-sync-inline-edit input[type="text"]:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+#dom-sync-inline-edit input[type="color"] {
+  width: 34px;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(28, 28, 39, 0.8);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+#dom-sync-inline-edit input[type="color"]:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+#dom-sync-inline-edit .dom-sync-style-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(28, 28, 39, 0.8);
+  color: #f0f0f5;
+  font-size: 13px;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+#dom-sync-inline-edit .dom-sync-style-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+#dom-sync-inline-edit button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    background 0.15s ease,
+    box-shadow 0.2s ease;
+}
+#dom-sync-inline-edit button:active {
+  transform: scale(0.96);
+}
+
+#dom-sync-inline-edit .dom-sync-save-btn {
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+}
+#dom-sync-inline-edit .dom-sync-save-btn:hover {
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+}
+#dom-sync-inline-edit .dom-sync-cancel-btn {
+  background: rgba(255, 255, 255, 0.06);
+  color: #9ca3af;
+}
+#dom-sync-inline-edit .dom-sync-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #d1d5db;
+}
+
+/* Style panel groups */
+#dom-sync-inline-edit .dom-sync-style-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#dom-sync-inline-edit .dom-sync-style-group-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: rgba(255, 255, 255, 0.5);
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+#dom-sync-inline-edit .dom-sync-remove-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  padding: 0;
+  background: rgba(244, 63, 94, 0.1);
+  color: #fb7185;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+#dom-sync-inline-edit .dom-sync-remove-btn:hover {
+  background: rgba(244, 63, 94, 0.25);
+}
+
+#dom-sync-inline-edit .dom-sync-style-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 4px;
+}
+#dom-sync-inline-edit .dom-sync-color-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#dom-sync-inline-edit .dom-sync-color-row input[type="text"] {
+  min-width: 80px;
+  flex: 1;
+}
+
+/* ===== Scope Badge & File Label ===== */
+#dom-sync-inline-edit .dom-sync-scope-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 6px;
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.18);
+  white-space: nowrap;
+}
+#dom-sync-inline-edit .dom-sync-file-label {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.25);
+  font-family: "SF Mono", "Fira Code", monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+  margin-left: auto;
+}
+
+/* ===== Scope Toggle ===== */
+#dom-sync-inline-edit .dom-sync-scope-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 4px;
+}
+#dom-sync-inline-edit .dom-sync-scope-btn {
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+#dom-sync-inline-edit .dom-sync-scope-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #9ca3af;
+}
+#dom-sync-inline-edit .dom-sync-scope-btn.active {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+/* ===== Toast Notification ===== */
+#dom-sync-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+  animation: dom-sync-toast-in 0.3s ease-out;
+}
+
+@keyframes dom-sync-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+#dom-sync-toast.success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.18);
+}
+
+#dom-sync-toast.error {
+  background: rgba(244, 63, 94, 0.12);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.18);
+}
+
+#dom-sync-toast.hiding {
+  opacity: 0;
+  transform: translateY(10px) scale(0.95);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}

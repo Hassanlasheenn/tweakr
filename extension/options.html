@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Tweakr Settings</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        background: linear-gradient(145deg, #0f0c29, #1a1145, #24243e);
+        color: #e0e0e0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        padding: 40px 20px;
+      }
+      .container {
+        width: 100%;
+        max-width: 400px;
+      }
+      h1 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 24px;
+        color: #fff;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #9ca3af;
+        margin-bottom: 6px;
+      }
+      input {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        background: rgba(28, 28, 39, 0.8);
+        color: #f0f0f5;
+        font-size: 14px;
+        font-family: "SF Mono", "Fira Code", monospace;
+        outline: none;
+        margin-bottom: 16px;
+        transition: border-color 0.2s;
+      }
+      input:focus {
+        border-color: #6366f1;
+      }
+      button {
+        padding: 10px 24px;
+        border: none;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #6366f1, #818cf8);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+      button:hover {
+        opacity: 0.9;
+      }
+      .status {
+        margin-top: 12px;
+        font-size: 12px;
+        color: #34d399;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      .status.show {
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Tweakr Server Settings</h1>
+      <label for="host">Server Host</label>
+      <input type="text" id="host" placeholder="localhost" />
+      <label for="port">Server Port</label>
+      <input type="number" id="port" placeholder="3333" />
+      <button id="save">Save</button>
+      <div class="status" id="status">Settings saved</div>
+    </div>
+    <script src="options.js"></script>
+  </body>
+</html>

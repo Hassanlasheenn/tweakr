@@ -1,0 +1,23 @@
+{
+  "name": "tweakr-server",
+  "version": "1.0.0",
+  "description": "Bridge server for Tweakr Chrome extension — WebSocket + HTTP API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{js,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,json,md}\"",
+    "validate": "npm run format:check && npm run lint && node -c server.js"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "globals": "^17.5.0",
+    "prettier": "^3.8.3"
+  }
+}
