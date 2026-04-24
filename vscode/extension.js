@@ -1,34 +1,48 @@
 const vscode = require("vscode");
-const { spawn } = require("child_process");
+const { spawn, execSync } = require("child_process");
 const path = require("path");
+const fs = require("fs");
 const http = require("http");
 
 let serverProcess = null;
 let statusBarItem = null;
 let outputChannel = null;
 
-function getServerPath() {
-  // Try to find server.js in common locations
-  const candidates = [
-    // Installed as npm dependency in the project
-    path.join("node_modules", "tweakr", "server.js"),
-    // Globally installed
-    path.join(__dirname, "..", "server", "server.js"),
-  ];
+/**
+ * Dynamic server discovery — tries each source in order:
+ * 1. Bundled with this extension (always available)
+ * 2. Project's node_modules (if user installed tweakr as dev dep)
+ * 3. Globally installed via npm
+ * Returns { mode, serverPath } or { mode: "npx" } as last resort
+ */
+function discoverServer() {
+  const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
-  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  if (workspaceFolder) {
-    for (const candidate of candidates) {
-      const full = path.join(workspaceFolder.uri.fsPath, candidate);
-      try {
-        require("fs").accessSync(full);
-        return full;
-      } catch {}
+  // 1. Bundled — ships inside this extension, always works
+  const bundled = path.join(__dirname, "bundled", "server.js");
+  if (fs.existsSync(bundled)) {
+    return { mode: "bundled", serverPath: bundled };
+  }
+
+  // 2. Project local — user ran `npm install tweakr` in their project
+  if (workspacePath) {
+    const projectLocal = path.join(workspacePath, "node_modules", "tweakr", "server.js");
+    if (fs.existsSync(projectLocal)) {
+      return { mode: "project", serverPath: projectLocal };
     }
   }
 
-  // Fallback: use npx to run tweakr
-  return null;
+  // 3. Global npm — user ran `npm install -g tweakr`
+  try {
+    const globalPrefix = execSync("npm root -g", { encoding: "utf-8" }).trim();
+    const globalPath = path.join(globalPrefix, "tweakr", "server.js");
+    if (fs.existsSync(globalPath)) {
+      return { mode: "global", serverPath: globalPath };
+    }
+  } catch {}
+
+  // 4. Fallback — npx downloads and runs on first use
+  return { mode: "npx", serverPath: null };
 }
 
 function getPort() {
@@ -43,27 +57,30 @@ function startServer() {
 
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
   if (!workspaceFolder) {
-    vscode.window.showErrorMessage("No workspace folder open.");
+    vscode.window.showErrorMessage("Tweakr: No workspace folder open.");
     return;
   }
 
   const cwd = workspaceFolder.uri.fsPath;
   const port = getPort();
-  const serverPath = getServerPath();
+  const { mode, serverPath } = discoverServer();
 
   outputChannel.clear();
-  outputChannel.appendLine(`Starting Tweakr server on port ${port}...`);
+  outputChannel.appendLine(`Tweakr starting on port ${port}...`);
   outputChannel.appendLine(`Working directory: ${cwd}`);
+  outputChannel.appendLine(`Server source: ${mode}${serverPath ? ` (${serverPath})` : ""}`);
 
   const env = { ...process.env, TWEAKR_PORT: String(port) };
 
   if (serverPath) {
-    // Run server.js directly
-    outputChannel.appendLine(`Server path: ${serverPath}`);
+    // Set NODE_PATH so bundled server.js can find the ws module
+    const nodeModulesPath = path.join(__dirname, "node_modules");
+    env.NODE_PATH = nodeModulesPath;
+
     serverProcess = spawn(process.execPath, [serverPath], { cwd, env });
   } else {
-    // Fall back to npx tweakr
-    outputChannel.appendLine("Using: npx tweakr");
+    // npx fallback
+    outputChannel.appendLine("Using: npx tweakr (downloading if needed...)");
     serverProcess = spawn("npx", ["tweakr", "--port", String(port)], {
       cwd,
       env,
@@ -98,8 +115,10 @@ function startServer() {
   let attempts = 0;
   const checkReady = setInterval(() => {
     attempts++;
-    if (attempts > 20) {
+    if (attempts > 30) {
       clearInterval(checkReady);
+      updateStatusBar("stopped");
+      outputChannel.appendLine("Server failed to start within 15 seconds.");
       return;
     }
     const req = http.get(`http://localhost:${port}/agents/explore`, (res) => {
@@ -107,10 +126,13 @@ function startServer() {
         clearInterval(checkReady);
         updateStatusBar("running");
         outputChannel.appendLine("Server is ready.");
+        vscode.window.showInformationMessage(
+          `Tweakr running on port ${port}. Open Chrome and activate the extension.`
+        );
       }
       res.resume();
     });
-    req.on("error", () => {}); // not ready yet
+    req.on("error", () => {});
     req.setTimeout(500, () => req.destroy());
   }, 500);
 }
@@ -145,7 +167,7 @@ function updateStatusBar(state) {
   switch (state) {
     case "running":
       statusBarItem.text = "$(check) Tweakr";
-      statusBarItem.tooltip = `Tweakr server running on port ${getPort()}`;
+      statusBarItem.tooltip = `Tweakr server running on port ${getPort()} — click to stop`;
       statusBarItem.color = "#34d399";
       statusBarItem.command = "tweakr.stop";
       break;
@@ -170,7 +192,7 @@ function activate(context) {
   outputChannel = vscode.window.createOutputChannel("Tweakr");
   statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
-    100,
+    100
   );
 
   context.subscriptions.push(
@@ -178,7 +200,7 @@ function activate(context) {
     vscode.commands.registerCommand("tweakr.stop", stopServer),
     vscode.commands.registerCommand("tweakr.restart", restartServer),
     statusBarItem,
-    outputChannel,
+    outputChannel
   );
 
   updateStatusBar("stopped");

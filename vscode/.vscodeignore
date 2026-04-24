@@ -1,4 +1,7 @@
-node_modules/
 .claude/
+.git/
+.github/
+.gitignore
 *.md
 !README.md
+*.vsix

@@ -40,3 +40,4 @@ build/
 # Archives
 *.tgz
 *.zip
+*.vsix
