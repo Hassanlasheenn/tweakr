@@ -130,7 +130,7 @@ function startServer() {
         updateStatusBar("running");
         outputChannel.appendLine("Server is ready.");
         vscode.window.showInformationMessage(
-          `Tweakr running on port ${port}. Open Chrome and activate the extension.`
+          "Tweakr is ready! Open Chrome and click the Tweakr extension to start editing."
         );
       }
       res.resume();
@@ -170,7 +170,7 @@ function updateStatusBar(state) {
   switch (state) {
     case "running":
       statusBarItem.text = "$(check) Tweakr";
-      statusBarItem.tooltip = `Tweakr server running on port ${getPort()} — click to stop`;
+      statusBarItem.tooltip = "Tweakr is running — click to stop";
       statusBarItem.color = "#34d399";
       statusBarItem.command = "tweakr.stop";
       break;
