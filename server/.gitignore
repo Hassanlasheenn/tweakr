@@ -1,2 +1,2 @@
+# All common patterns are in root .gitignore
 node_modules/
-changes.log
