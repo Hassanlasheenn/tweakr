@@ -323,7 +323,7 @@
     const styleBtn = document.createElement("button");
     styleBtn.className = "dom-sync-style-btn";
     styleBtn.innerHTML =
-      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>';
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l6.58-6.58a1 1 0 0 0 0-1.42L12 2z"/><circle cx="7.5" cy="7.5" r="1.5" fill="currentColor"/></svg>';
     styleBtn.title = "Edit styles";
     styleBtn.setAttribute("aria-label", "Edit styles");
     styleBtn.setAttribute("tabindex", "0");
@@ -378,17 +378,29 @@
   function showTooltipAt(el) {
     ensureTooltip();
     const rect = el.getBoundingClientRect();
-    const th = 36; // tooltip height
+    const tw = tooltip.offsetWidth || 90;
+    const th = tooltip.offsetHeight || 36;
 
-    // Position overlapping the top edge of the element (no gap)
-    let top = rect.top - th + 6;
-    let left = rect.right - (tooltip.offsetWidth || 90);
+    // Strategy: try right side of element first (avoids label overlap)
+    let top = rect.top + (rect.height - th) / 2; // vertically centered
+    let left = rect.right + 6; // 6px gap to the right
 
-    // Fallback: overlap bottom edge if no room above
-    if (top < 2) top = rect.bottom - 6;
-    // Keep within viewport
-    if (left < 4) left = rect.left;
-    if (left + 90 > window.innerWidth) left = window.innerWidth - 94;
+    // If no room on right, try left side
+    if (left + tw > window.innerWidth - 4) {
+      left = rect.left - tw - 6;
+    }
+
+    // If no room on either side, fall back to top-right corner (overlapping)
+    if (left < 4) {
+      left = rect.right - tw;
+      top = rect.top - th + 6;
+      // If no room above, go below
+      if (top < 2) top = rect.bottom - 6;
+    }
+
+    // Keep within viewport vertically
+    if (top < 2) top = 2;
+    if (top + th > window.innerHeight) top = window.innerHeight - th - 2;
 
     tooltip.style.top = top + window.scrollY + "px";
     tooltip.style.left = left + window.scrollX + "px";
