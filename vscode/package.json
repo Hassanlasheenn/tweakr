@@ -1,9 +1,9 @@
 {
   "name": "tweakr-vscode",
   "displayName": "Tweakr",
-  "description": "Edit your UI visually from the browser. Tweakr auto-starts so you can hover, click, and change — source code updates instantly.",
-  "version": "1.0.0",
-  "publisher": "hassanlasheen",
+  "description": "Edit your UI visually from the browser. ⚠ Chrome extension is currently under Chrome Web Store review — full functionality coming soon.",
+  "version": "1.0.1",
+  "publisher": "hassanlasheenn",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -65,6 +65,10 @@
     }
   },
   "icon": "icon.png",
+  "galleryBanner": {
+    "color": "#d97706",
+    "theme": "dark"
+  },
   "dependencies": {
     "ws": "^8.16.0"
   }

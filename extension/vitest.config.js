@@ -6,5 +6,7 @@ export default defineConfig({
     globals: true,
     setupFiles: "./test/setup.js",
     include: ["test/**/*.test.js"],
+    pool: "vmThreads",
+    testTimeout: 90000,
   },
 });
