@@ -61,13 +61,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tweakr-vscode
-          path: vscode/tweakr-vscode-*.vsix
+          path: vscode/*.vsix
 
       - name: Publish to VS Marketplace
-        run: cd vscode && vsce publish --packagePath tweakr-vscode-*.vsix -p ${{ secrets.VSCE_PAT }}
+        run: cd vscode && vsce publish --packagePath *.vsix -p ${{ secrets.VSCE_PAT }}
 
       - name: Publish to Open VSX
-        run: cd vscode && ovsx publish tweakr-vscode-*.vsix -p ${{ secrets.OVSX_TOKEN }}
+        run: cd vscode && ovsx publish *.vsix -p ${{ secrets.OVSX_TOKEN }}
 
   build:
     name: Build Extension
@@ -146,4 +146,4 @@ jobs:
           generate_release_notes: true
           files: |
             dist/tweakr-v${{ steps.version.outputs.VERSION }}.zip
-            dist/tweakr-vscode-*.vsix
+            dist/*.vsix
