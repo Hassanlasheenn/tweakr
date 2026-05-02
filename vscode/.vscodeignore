@@ -1,7 +1,14 @@
+# Exclude everything outside the vscode/ directory
+../**
+
+# Exclude dev/build artifacts inside vscode/
 .claude/
 .git/
 .github/
 .gitignore
+*.vsix
+
+# Keep README and CHANGELOG but exclude all other markdown
 *.md
 !README.md
-*.vsix
+!CHANGELOG.md
