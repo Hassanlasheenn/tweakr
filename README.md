@@ -6,6 +6,7 @@ Tweakr puts you in control of your UI — directly from the browser. Instead of 
 
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/tweakr)
 [![VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Extension-007ACC?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=hassanlasheen.tweakr-vscode)
+[![GitHub Release](https://img.shields.io/github/v/release/Hassanlasheenn/tweakr?label=release)](https://github.com/Hassanlasheenn/tweakr/releases/latest)
 [![GitHub](https://img.shields.io/github/stars/Hassanlasheenn/tweakr?style=social)](https://github.com/Hassanlasheenn/tweakr)
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)
 ![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)
