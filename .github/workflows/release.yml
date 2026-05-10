@@ -32,9 +32,35 @@ jobs:
       - name: Validate server
         run: npm run validate --workspace=server
 
+  changelog:
+    name: Verify Changelog
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Check changelog entries exist
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          if ! grep -q "## \[$VERSION\]" CHANGELOG.md; then
+            echo "ERROR: CHANGELOG.md is missing entry for v$VERSION"
+            echo "Run: node scripts/changelog.js $VERSION"
+            exit 1
+          fi
+          if ! grep -q "## \[$VERSION\]" vscode/CHANGELOG.md; then
+            echo "ERROR: vscode/CHANGELOG.md is missing entry for v$VERSION"
+            echo "Run: node scripts/changelog.js $VERSION"
+            exit 1
+          fi
+          echo "✓ Changelog entries verified for v$VERSION"
+
   publish-vscode:
     name: Publish VS Code Extension
-    needs: validate
+    needs: [validate, changelog]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -71,7 +97,7 @@ jobs:
 
   build:
     name: Build Extension
-    needs: validate
+    needs: [validate, changelog]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

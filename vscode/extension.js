@@ -209,12 +209,6 @@ function trackVSCodeStat(key) {
   extensionContext.globalState.update("tweakr_stats", stats);
 }
 
-function showChromeReviewNotice() {
-  vscode.window.showInformationMessage(
-    "Tweakr: Server is ready. Install the Tweakr Chrome extension to start editing your UI visually.",
-  );
-}
-
 function activate(context) {
   extensionContext = context;
   outputChannel = vscode.window.createOutputChannel("Tweakr");
@@ -229,8 +223,6 @@ function activate(context) {
   stats.activations = (stats.activations || 0) + 1;
   stats.lastUsed = new Date().toISOString();
   context.globalState.update("tweakr_stats", stats);
-
-  showChromeReviewNotice();
 
   context.subscriptions.push(
     vscode.commands.registerCommand("tweakr.start", () => {
