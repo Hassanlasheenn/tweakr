@@ -2,7 +2,7 @@
   "name": "tweakr-extension",
   "private": true,
   "type": "module",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Tweakr — Chrome extension for hover-to-edit DOM elements with live CSS editing",
   "scripts": {
     "lint": "eslint .",

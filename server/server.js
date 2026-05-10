@@ -10,6 +10,41 @@ const LOG_FILE = path.join(__dirname, "changes.log");
 // --- File type detection for multi-framework support ---
 const SOURCE_EXTENSIONS = /\.(jsx|tsx|vue|svelte|html|htm|js|ts|component\.html)$/;
 
+// Directories to always skip when scanning for source files
+const SKIP_DIRS = new Set([
+  "node_modules",
+  "dist",
+  "build",
+  ".git",
+  ".angular",
+  ".next",
+  ".nuxt",
+  "coverage",
+  "__pycache__",
+  ".cache",
+  "out",
+  ".output",
+  "public",
+  "static",
+  "assets",
+  "vendor",
+  "tmp",
+  ".tmp",
+  "e2e",
+  "cypress",
+  "__tests__",
+]);
+
+// Detect all relevant source directories dynamically from the project root
+function detectSourceDirs(projectRoot) {
+  const candidates = ["src", "app", "pages", "components", "views", "features", "modules", "lib"];
+  const found = candidates
+    .map((name) => path.join(projectRoot, name))
+    .filter((dir) => fs.existsSync(dir) && fs.statSync(dir).isDirectory());
+  // Fall back to scanning from project root if none of the known dirs exist
+  return found.length > 0 ? found : [projectRoot];
+}
+
 function getFileType(filePath) {
   // Angular component templates: *.component.html
   if (/\.component\.html$/.test(filePath)) return "angular";
@@ -534,9 +569,9 @@ function findComponents(dir, results = []) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory() && entry.name !== "node_modules") {
+    if (entry.isDirectory() && !SKIP_DIRS.has(entry.name)) {
       findComponents(full, results);
-    } else if (SOURCE_EXTENSIONS.test(entry.name)) {
+    } else if (entry.isFile() && SOURCE_EXTENSIONS.test(entry.name)) {
       results.push(full);
     }
   }
@@ -550,9 +585,9 @@ function findAllCssFiles(dir, results = []) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory() && entry.name !== "node_modules" && entry.name !== "__tests__") {
+    if (entry.isDirectory() && !SKIP_DIRS.has(entry.name)) {
       findAllCssFiles(full, results);
-    } else if (/\.(css|scss)$/.test(entry.name)) {
+    } else if (entry.isFile() && /\.(css|scss)$/.test(entry.name)) {
       results.push(full);
     }
   }
@@ -646,16 +681,18 @@ class RequestCache {
     this._componentCssUsers = {};
   }
 
-  getAllCssFiles(srcDir) {
+  getAllCssFiles() {
     if (!this._dirWalks.css) {
-      this._dirWalks.css = findAllCssFiles(srcDir);
+      const dirs = detectSourceDirs(process.cwd());
+      this._dirWalks.css = dirs.flatMap((d) => findAllCssFiles(d));
     }
     return this._dirWalks.css;
   }
 
-  getAllJsxFiles(srcDir) {
+  getAllJsxFiles() {
     if (!this._dirWalks.jsx) {
-      this._dirWalks.jsx = findComponents(srcDir);
+      const dirs = detectSourceDirs(process.cwd());
+      this._dirWalks.jsx = dirs.flatMap((d) => findComponents(d));
     }
     return this._dirWalks.jsx;
   }
@@ -768,10 +805,9 @@ const server = http.createServer((req, res) => {
 
   // GET /agents/explore — scan components and list elements
   if (req.method === "GET" && url.pathname === "/agents/explore") {
-    const srcDir = path.resolve(process.cwd(), "src");
     try {
       const cache = new RequestCache();
-      const components = cache.getAllJsxFiles(srcDir);
+      const components = cache.getAllJsxFiles();
       const result = components.map((file) => {
         const relPath = path.relative(process.cwd(), file);
         const source = cache.readFile(file) || "";
@@ -802,9 +838,8 @@ const server = http.createServer((req, res) => {
       const base = path.basename(componentFile, ext);
       const dir = path.dirname(componentPath);
 
-      const srcDir = path.resolve(process.cwd(), "src");
-      const allCssFiles = cache.getAllCssFiles(srcDir);
-      const allJsxFiles = cache.getAllJsxFiles(srcDir);
+      const allCssFiles = cache.getAllCssFiles();
+      const allJsxFiles = cache.getAllJsxFiles();
       const jsxSource = fs.existsSync(componentPath) ? cache.readFile(componentPath) : "";
       const importedCss = jsxSource ? findImportedCss(jsxSource, dir) : [];
 
@@ -1189,9 +1224,8 @@ wss.on("connection", (socket) => {
 
       const editScope = msg.scope || "global";
 
-      const srcDir = path.resolve(process.cwd(), "src");
-      const allCssFiles = cache.getAllCssFiles(srcDir);
-      const allJsxFiles = cache.getAllJsxFiles(srcDir);
+      const allCssFiles = cache.getAllCssFiles();
+      const allJsxFiles = cache.getAllJsxFiles();
 
       // Resolve the component's own CSS file
       const componentCssCandidates = [
