@@ -93,7 +93,11 @@ jobs:
         run: cd vscode && vsce publish --packagePath *.vsix -p ${{ secrets.VSCE_PAT }}
 
       - name: Publish to Open VSX
-        run: cd vscode && ovsx publish *.vsix -p ${{ secrets.OVSX_TOKEN }} --namespace hassanlasheenn
+        run: |
+          cd vscode
+          node -e "const fs=require('fs'),p=JSON.parse(fs.readFileSync('package.json'));p.publisher='hassanlasheenn';fs.writeFileSync('package.json',JSON.stringify(p,null,2))"
+          vsce package
+          ovsx publish tweakr-dev-*.vsix -p ${{ secrets.OVSX_TOKEN }}
 
   build:
     name: Build Extension
