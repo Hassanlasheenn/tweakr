@@ -93,7 +93,7 @@ jobs:
         run: cd vscode && vsce publish --packagePath *.vsix -p ${{ secrets.VSCE_PAT }}
 
       - name: Publish to Open VSX
-        run: cd vscode && ovsx publish *.vsix -p ${{ secrets.OVSX_TOKEN }}
+        run: cd vscode && ovsx publish *.vsix -p ${{ secrets.OVSX_TOKEN }} --namespace hassanlasheenn
 
   build:
     name: Build Extension
