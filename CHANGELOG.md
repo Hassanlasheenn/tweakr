@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.7] - 2026-05-10
+
+### Changed
+- Internal release bump
+
+
 ## [0.0.6] - 2026-05-10
 
 ### Changed
