@@ -1,8 +1,8 @@
 {
   "name": "tweakr-dev",
   "displayName": "Tweakr Visual Editor",
-  "description": "Edit your UI visually from the browser. ⚠ Chrome extension is currently under Chrome Web Store review — full functionality coming soon.",
-  "version": "0.0.1",
+  "description": "Edit your UI visually from the browser. Hover over any element, edit text, change styles, delete elements — source code updates instantly.",
+  "version": "0.0.2",
   "publisher": "hassanlasheenn",
   "license": "MIT",
   "repository": {
@@ -13,14 +13,19 @@
     "vscode": "^1.84.0"
   },
   "categories": [
-    "Other",
-    "Visualization"
+    "Visualization",
+    "Other"
   ],
   "keywords": [
     "tweakr",
-    "dom",
-    "css",
     "visual-editor",
+    "css",
+    "dom",
+    "ui-editor",
+    "frontend",
+    "design",
+    "live-edit",
+    "react",
     "chrome"
   ],
   "activationEvents": [

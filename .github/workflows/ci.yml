@@ -30,6 +30,29 @@ jobs:
       - name: Format check
         run: npm run format:check --workspace=extension
 
+  validate-vscode:
+    name: Validate VS Code Extension
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
+
+      - name: Install vscode extension dependencies
+        run: npm install --prefix vscode
+
+      - name: Syntax check extension.js
+        run: node -c vscode/extension.js
+
+      - name: Dry-run package (verify it builds)
+        run: cd vscode && vsce package --no-git-tag-version --no-update-package-json 2>&1 | grep -v "^WARNING"
+
   validate-server:
     name: Validate Server
     runs-on: ubuntu-latest
