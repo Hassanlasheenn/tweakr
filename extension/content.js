@@ -49,6 +49,7 @@
     isColorProp,
     isIgnoredElement,
     isFormControl,
+    ownText,
     canEdit,
     canDelete,
     canStyle,
@@ -61,6 +62,7 @@
   let inlineEdit = null;
   let filePath = "";
   let locked = false; // locks hover when tooltip/edit is active
+  let listenerController = null; // AbortController for hover listeners
 
   // --- WebSocket ---
   function connectWS() {
@@ -76,6 +78,8 @@
         const data = JSON.parse(event.data);
         if (data.success) {
           showToast(data.message, "success");
+          // Refresh component map so the next action uses updated source state
+          refreshComponents();
         } else {
           showToast(data.message || "Operation failed", "error");
         }
@@ -92,8 +96,8 @@
   let componentsLoaded = false;
   let loadingComponents = false;
 
-  function loadComponents() {
-    if (componentsLoaded || loadingComponents) return;
+  function loadComponents(force = false) {
+    if (!force && (componentsLoaded || loadingComponents)) return;
     loadingComponents = true;
     fetch(`${SERVER_URL}/agents/explore`)
       .then((r) => r.json())
@@ -113,6 +117,11 @@
         log("Server not reachable — retrying in 3s");
         setTimeout(loadComponents, 3000);
       });
+  }
+
+  function refreshComponents() {
+    componentsLoaded = false;
+    loadComponents(true);
   }
 
   // Fetch on load
@@ -150,8 +159,18 @@
 
     const tag = el.tagName.toLowerCase();
     const id = el.id || "";
-    const classes = Array.from(el.classList).filter((c) => c !== "dom-sync-highlight");
+
+    // Strip Angular/framework runtime classes — they don't exist in source templates
+    // and pollute the overlap score, causing utility classes to incorrectly decide the winner.
+    const RUNTIME = /^(ng-star-inserted|ng-tns-|ng-touched|ng-untouched|ng-pristine|ng-dirty|ng-valid|ng-invalid|ng-pending|ng-submitted|ng-animate-disabled|cdk-)/;
+    const classes = Array.from(el.classList).filter(
+      (c) => c !== "dom-sync-highlight" && !RUNTIME.test(c)
+    );
     const text = (el.textContent || "").trim().slice(0, 100);
+
+    // Specific classes (BEM names with __ or --, long identifiers) are highly discriminating.
+    // Generic utility classes (short, no BEM separators) appear in many components.
+    const specificClasses = classes.filter((c) => c.includes("__") || c.includes("--") || c.length > 15);
 
     let bestMatch = null;
     let bestScore = 0;
@@ -163,7 +182,11 @@
         if (id && elem.id === id) score += 10;
         if (elem.classes && classes.length) {
           const overlap = classes.filter((c) => elem.classes.includes(c)).length;
-          score += overlap * 3;
+          const specificOverlap = specificClasses.filter((c) => elem.classes.includes(c)).length;
+          // Specific class matches score 10×; utility class matches score 2×
+          score += specificOverlap * 10 + (overlap - specificOverlap) * 2;
+          // If DOM element has specific classes but none match this source element, penalise
+          if (specificClasses.length > 0 && specificOverlap === 0) score -= 5;
         }
         if (text && elem.text && elem.text.includes(text.slice(0, 30))) score += 5;
         if (score > bestScore) {
@@ -783,7 +806,6 @@
           for (const [selector, ruleData] of Object.entries(rules)) {
             if (/:hover|:focus|:active|:visited|::/.test(selector)) continue;
 
-            // Handle both old format (flat props) and new format ({props, file, scope, usedBy})
             const isNewFormat = ruleData.props && typeof ruleData.props === "object";
             const props = isNewFormat ? ruleData.props : ruleData;
             const file = ruleData.file || null;
@@ -797,13 +819,16 @@
             const groupEl = document.createElement("div");
             groupEl.className = "dom-sync-style-group";
 
-            // Title row with selector name + scope badge
+            // Title row: selector name (shortened for readability) + badges
             const titleRow = document.createElement("div");
-            titleRow.style.cssText = "display:flex;align-items:center;gap:6px;";
+            titleRow.style.cssText = "display:flex;align-items:center;gap:6px;flex-wrap:wrap;";
 
             const title = document.createElement("span");
             title.className = "dom-sync-style-group-title";
-            title.textContent = selector;
+            // Show last BEM segment as the readable label; full selector in tooltip
+            const shortName = selector.replace(/^.*[__\-]([a-z0-9-]+)$/, "$1") || selector;
+            title.textContent = shortName !== selector ? shortName : selector;
+            title.title = selector;
             titleRow.appendChild(title);
 
             if (isShared) {
@@ -814,7 +839,6 @@
               titleRow.appendChild(badge);
             }
 
-            // File origin label
             if (file) {
               const fileLabel = document.createElement("span");
               fileLabel.className = "dom-sync-file-label";
@@ -828,10 +852,30 @@
             for (const [cssProp, value] of Object.entries(props)) {
               const jsxKey = cssToCamel(cssProp);
               if (inputs[jsxKey]) continue;
-              const type = isColorProp(cssProp) ? "color" : "text";
-              createPropRow(cssProp, jsxKey, type, groupEl);
-              if (inputs[jsxKey]) inputs[jsxKey].value = value;
-              initialValues[jsxKey] = value;
+              const isColor = isColorProp(cssProp);
+              createPropRow(cssProp, jsxKey, isColor ? "color" : "text", groupEl);
+              if (inputs[jsxKey]) {
+                // For color inputs: CSS variables (var(--x)) can't be rendered in a color picker.
+                // Keep the computed color (already set by createPropRow) so the picker works.
+                // For plain values, show the source value directly.
+                const isExpression = /^var\(|^calc\(|^env\(|^clamp\(/.test(value);
+                if (!isColor || !isExpression) {
+                  inputs[jsxKey].value = value;
+                  initialValues[jsxKey] = value;
+                }
+                // For color + CSS var: add a tooltip showing the variable name
+                if (isColor && isExpression) {
+                  inputs[jsxKey].title = `Source: ${value}`;
+                  const row = inputs[jsxKey].closest(".dom-sync-style-row");
+                  if (row) {
+                    const hint = document.createElement("span");
+                    hint.style.cssText = "font-size:10px;opacity:0.5;margin-left:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;";
+                    hint.textContent = value;
+                    hint.title = value;
+                    row.insertBefore(hint, row.querySelector(".dom-sync-remove-btn"));
+                  }
+                }
+              }
             }
 
             sourceRulesContainer.appendChild(groupEl);
@@ -1152,7 +1196,7 @@
 
     const input = document.createElement("input");
     input.type = "text";
-    input.value = el.ownText();
+    input.value = ownText(el);
     input.placeholder = "New text...";
 
     const saveBtn = document.createElement("button");
@@ -1226,17 +1270,6 @@
     });
   }
 
-  // Get only the element's own text (not children's)
-  Element.prototype.ownText = function () {
-    let text = "";
-    for (const node of this.childNodes) {
-      if (node.nodeType === Node.TEXT_NODE) {
-        text += node.textContent;
-      }
-    }
-    return text.trim();
-  };
-
   function closeInlineEdit() {
     if (inlineEdit) {
       inlineEdit.remove();
@@ -1248,79 +1281,101 @@
     }
   }
 
-  // --- Hover handling (guarded to prevent duplicate listeners on re-injection) ---
-  if (!window.__domSyncListenersAttached) {
-    window.__domSyncListenersAttached = true;
-    document.addEventListener(
-      "mouseover",
-      (e) => {
-        if (!e.target) return;
-        if (inlineEdit) return;
+  // --- Hover handling ---
+  // Always create a fresh AbortController so stop() can tear down listeners immediately.
+  if (listenerController) listenerController.abort();
+  listenerController = new AbortController();
+  const { signal } = listenerController;
+  window.__domSyncListenersAttached = true;
 
-        // Mouse entered tooltip — cancel any pending hide
-        if (isOwnUI(e.target)) {
-          locked = true;
-          if (hideTimeout) {
-            clearTimeout(hideTimeout);
-            hideTimeout = null;
-          }
-          return;
-        }
+  document.addEventListener(
+    "mouseover",
+    (e) => {
+      if (!e.target) return;
+      if (inlineEdit) return;
 
-        if (locked) return;
-        if (!canInteract(e.target)) return;
-
+      // Mouse entered tooltip — cancel any pending hide
+      if (isOwnUI(e.target)) {
+        locked = true;
         if (hideTimeout) {
           clearTimeout(hideTimeout);
           hideTimeout = null;
         }
+        return;
+      }
 
-        if (currentTarget && currentTarget !== e.target) {
-          currentTarget.classList.remove("dom-sync-highlight");
-        }
+      if (locked) return;
+      if (!canInteract(e.target)) return;
 
-        currentTarget = e.target;
-        currentTarget.classList.add("dom-sync-highlight");
-        updateTooltipButtons(currentTarget);
-        showTooltipAt(currentTarget);
-      },
-      true
-    );
+      if (hideTimeout) {
+        clearTimeout(hideTimeout);
+        hideTimeout = null;
+      }
 
-    document.addEventListener(
-      "mouseout",
-      (e) => {
-        if (inlineEdit) return;
+      if (currentTarget && currentTarget !== e.target) {
+        currentTarget.classList.remove("dom-sync-highlight");
+      }
 
-        // Leaving tooltip
-        if (isOwnUI(e.target) && !isOwnUI(e.relatedTarget)) {
-          locked = false;
-          scheduleHide();
-          return;
-        }
+      currentTarget = e.target;
+      currentTarget.classList.add("dom-sync-highlight");
+      updateTooltipButtons(currentTarget);
+      showTooltipAt(currentTarget);
+    },
+    { capture: true, signal }
+  );
 
-        if (locked) return;
+  document.addEventListener(
+    "mouseout",
+    (e) => {
+      if (inlineEdit) return;
+
+      // Leaving tooltip
+      if (isOwnUI(e.target) && !isOwnUI(e.relatedTarget)) {
+        locked = false;
         scheduleHide();
-      },
-      true
-    );
+        return;
+      }
 
-    // Click outside to dismiss inline edit
-    document.addEventListener(
-      "mousedown",
-      (e) => {
-        if (inlineEdit && !isOwnUI(e.target)) {
-          closeInlineEdit();
-        }
-      },
-      true
-    );
-  } // end listener dedup guard
+      if (locked) return;
+      scheduleHide();
+    },
+    { capture: true, signal }
+  );
 
-  // --- Respond to popup ping ---
-  chrome.runtime?.onMessage?.addListener((msg, sender, sendResponse) => {
+  // Click outside to dismiss inline edit
+  document.addEventListener(
+    "mousedown",
+    (e) => {
+      if (inlineEdit && !isOwnUI(e.target)) {
+        closeInlineEdit();
+      }
+    },
+    { capture: true, signal }
+  );
+
+  // --- Respond to popup messages ---
+  chrome.runtime?.onMessage?.addListener((msg, _sender, sendResponse) => {
     if (msg.type === "ping") {
-      sendResponse({ active: true });
+      sendResponse({ active: !!window.__domSyncActive });
+    } else if (msg.type === "stop") {
+      // Remove all hover/click listeners immediately
+      if (listenerController) { listenerController.abort(); listenerController = null; }
+      // Clean up UI
+      if (hideTimeout) { clearTimeout(hideTimeout); hideTimeout = null; }
+      if (tooltip) { tooltip.style.display = "none"; }
+      if (currentTarget) { currentTarget.classList.remove("dom-sync-highlight"); currentTarget = null; }
+      closeInlineEdit();
+      const toast = document.getElementById("dom-sync-toast");
+      if (toast) toast.remove();
+      document.querySelectorAll(".dom-sync-highlight").forEach((el) => {
+        el.classList.remove("dom-sync-highlight");
+      });
+      locked = false;
+      if (ws) { try { ws.close(); } catch {} ws = null; }
+      if (window.__domSyncWS) { try { window.__domSyncWS.close(); } catch {} window.__domSyncWS = null; }
+      window.__domSyncActive = false;
+      window.__domSyncListenersAttached = false;
+      sendResponse({ stopped: true });
     }
   });
 

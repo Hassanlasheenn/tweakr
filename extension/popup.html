@@ -128,7 +128,7 @@
         background: rgba(16, 185, 129, 0.08);
         color: #34d399;
         border: 1px solid rgba(16, 185, 129, 0.12);
-        justify-content: center;
+        justify-content: space-between;
       }
       .status.active::before {
         content: "";
@@ -148,6 +148,10 @@
         50% {
           opacity: 0.5;
         }
+      }
+
+      #status-text {
+        flex: 1;
       }
 
       .activate-btn {
@@ -188,6 +192,34 @@
         display: none;
       }
 
+      .stop-btn {
+        display: none;
+        width: 26px;
+        height: 26px;
+        flex-shrink: 0;
+        padding: 0;
+        border: 1px solid rgba(244, 63, 94, 0.3);
+        border-radius: 6px;
+        background: rgba(244, 63, 94, 0.12);
+        color: #fb7185;
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+        transition:
+          background 0.15s ease,
+          border-color 0.15s ease;
+      }
+      .stop-btn:hover {
+        background: rgba(244, 63, 94, 0.22);
+        border-color: rgba(244, 63, 94, 0.5);
+      }
+      .stop-btn:active {
+        transform: scale(0.95);
+      }
+      .stop-btn.visible {
+        display: flex;
+      }
+
       .hint {
         margin-top: 16px;
         font-size: 11px;
@@ -208,7 +240,14 @@
       </div>
     </div>
 
-    <div id="status" class="status"></div>
+    <div id="status" class="status">
+      <span id="status-text"></span>
+      <button id="stop" class="stop-btn" title="Stop Tweakr">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+          <rect width="10" height="10" rx="1.5"/>
+        </svg>
+      </button>
+    </div>
 
     <button id="activate" class="activate-btn" disabled>Start Editing</button>
 

@@ -1,22 +1,43 @@
 let SERVER_URL = "http://localhost:3333";
 
-// Load user-configured server URL
+function _launchInit() {
+  if (typeof globalThis.__TWEAKR_TEST__ === "undefined") {
+    init();
+  }
+}
+
+// Resolve SERVER_URL from storage before calling init() to avoid race condition
 if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.sync) {
   chrome.storage.sync.get({ host: "localhost", port: 3333 }, (cfg) => {
     SERVER_URL = `http://${cfg.host}:${cfg.port}`;
+    _launchInit();
   });
+} else {
+  _launchInit();
 }
 
 const statusEl = document.getElementById("status");
+const statusTextEl = document.getElementById("status-text");
 const activateBtn = document.getElementById("activate");
+const stopBtn = document.getElementById("stop");
 const hintEl = document.getElementById("hint");
 let detectedFiles = [];
 
 function showActive() {
   activateBtn.classList.add("hidden");
+  stopBtn.classList.add("visible");
   statusEl.className = "status active";
-  statusEl.textContent = "Active";
+  statusTextEl.textContent = "Active";
   hintEl.textContent = "Hover over any element to edit it.";
+}
+
+function showReady() {
+  activateBtn.classList.remove("hidden");
+  activateBtn.disabled = false;
+  stopBtn.classList.remove("visible");
+  statusEl.className = "status ready";
+  statusTextEl.textContent = "Ready";
+  hintEl.textContent = "Hover over any element to edit or remove it from your source code.";
 }
 
 // Check server and detect if already active on current tab
@@ -31,13 +52,13 @@ async function init() {
 
     if (detectedFiles.length === 0) {
       statusEl.className = "status offline";
-      statusEl.textContent = "No components found in src/";
+      statusTextEl.textContent = "No components found in src/";
       activateBtn.disabled = true;
       return;
     }
   } catch {
     statusEl.className = "status offline";
-    statusEl.textContent = "Server offline — run: npx tweakr";
+    statusTextEl.textContent = "Server offline — run: npx tweakr";
     activateBtn.disabled = true;
     return;
   }
@@ -58,13 +79,22 @@ async function init() {
 
   // 3. Show ready state
   statusEl.className = "status ready";
-  statusEl.textContent = "Ready";
+  statusTextEl.textContent = "Ready";
   activateBtn.disabled = false;
 }
 
-if (typeof globalThis.__TWEAKR_TEST__ === "undefined") {
-  init();
-}
+
+// Stop Tweakr on current tab
+stopBtn.addEventListener("click", async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) return;
+  try {
+    await chrome.tabs.sendMessage(tab.id, { type: "stop" });
+  } catch {
+    // content script may already be gone
+  }
+  showReady();
+});
 
 // Activate content script on current tab
 activateBtn.addEventListener("click", async () => {
@@ -73,6 +103,11 @@ activateBtn.addEventListener("click", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab) return;
 
+  if (!tab.url || !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/.test(tab.url)) {
+    statusEl.className = "status offline";
+    statusTextEl.textContent = "Navigate to your localhost app first";
+    return;
+  }
   try {
     await chrome.scripting.insertCSS({
       target: { tabId: tab.id },
@@ -91,8 +126,10 @@ activateBtn.addEventListener("click", async () => {
     });
 
     showActive();
-  } catch {
+  } catch (err) {
     statusEl.className = "status offline";
-    statusEl.textContent = "Cannot access this page";
+    console.error("[Tweakr] Injection failed:", err);
+    const msg = err?.message || err?.toString?.() || String(err) || "";
+    statusTextEl.textContent = msg && msg !== "Error" ? msg : "Injection failed — check popup DevTools console";
   }
 });

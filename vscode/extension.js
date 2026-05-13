@@ -50,6 +50,24 @@ function discoverServer() {
   return { mode: "npx", serverPath: null };
 }
 
+// If workspace root has no frontend source indicators but contains a named
+// subproject (frontend/, client/, web/), use that as the server's working dir
+// so the server scans the correct files.
+function getEffectiveCwd(wsPath) {
+  const indicators = ["src", "app", "pages", "components", "index.html"];
+  if (indicators.some((i) => fs.existsSync(path.join(wsPath, i)))) return wsPath;
+  for (const dir of ["frontend", "client", "web"]) {
+    const sub = path.join(wsPath, dir);
+    try {
+      if (!fs.statSync(sub).isDirectory()) continue;
+    } catch {
+      continue;
+    }
+    if (indicators.some((i) => fs.existsSync(path.join(sub, i)))) return sub;
+  }
+  return wsPath;
+}
+
 function getPort() {
   return vscode.workspace.getConfiguration("tweakr").get("port", 3333);
 }
@@ -66,7 +84,7 @@ function startServer() {
     return;
   }
 
-  const cwd = workspaceFolder.uri.fsPath;
+  const cwd = getEffectiveCwd(workspaceFolder.uri.fsPath);
   const port = getPort();
   const { mode, serverPath } = discoverServer();
 
@@ -263,8 +281,9 @@ function activate(context) {
   if (autoStart) {
     const wsPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     if (wsPath) {
-      const hasSrc = fs.existsSync(path.join(wsPath, "src"));
-      const hasIndex = fs.existsSync(path.join(wsPath, "index.html"));
+      const effectivePath = getEffectiveCwd(wsPath);
+      const hasSrc = fs.existsSync(path.join(effectivePath, "src"));
+      const hasIndex = fs.existsSync(path.join(effectivePath, "index.html"));
       if (hasSrc || hasIndex) {
         startServer();
       } else {

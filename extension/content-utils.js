@@ -75,11 +75,21 @@
     return false;
   }
 
+  function ownText(el) {
+    let text = "";
+    for (const node of el.childNodes) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        text += node.textContent;
+      }
+    }
+    return text.trim();
+  }
+
   function canEdit(el) {
     if (isIgnoredElement(el) || isFormControl(el)) return false;
     const tag = el.tagName.toLowerCase();
     if (!EDITABLE_TEXT_TAGS.has(tag)) return false;
-    if (!el.ownText || !el.ownText()) return false;
+    if (!ownText(el)) return false;
     return true;
   }
 
@@ -110,6 +120,7 @@
     isColorProp,
     isIgnoredElement,
     isFormControl,
+    ownText,
     canEdit,
     canDelete,
     canStyle,

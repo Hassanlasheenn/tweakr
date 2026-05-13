@@ -4,7 +4,7 @@
   "version": "1.0.3",
   "description": "Stop digging through files. Hover over any element, edit it visually, and watch your source code update instantly.",
   "permissions": ["activeTab", "scripting", "storage"],
-  "host_permissions": ["http://localhost/*", "http://127.0.0.1/*", "https://localhost/*"],
+  "host_permissions": ["http://localhost:*/*", "http://127.0.0.1:*/*", "https://localhost:*/*"],
   "options_page": "options.html",
   "action": {
     "default_popup": "popup.html",
