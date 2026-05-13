@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.4] - 2026-05-13
+
+### Fixed
+- Stop button, SCSS BEM support, CSS panel improvements
+
+### Changed
+- Fix prettier formatting
+
+
 ## [1.0.3] - 2026-05-11
 
 ### Changed
