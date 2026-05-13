@@ -162,7 +162,8 @@
 
     // Strip Angular/framework runtime classes — they don't exist in source templates
     // and pollute the overlap score, causing utility classes to incorrectly decide the winner.
-    const RUNTIME = /^(ng-star-inserted|ng-tns-|ng-touched|ng-untouched|ng-pristine|ng-dirty|ng-valid|ng-invalid|ng-pending|ng-submitted|ng-animate-disabled|cdk-)/;
+    const RUNTIME =
+      /^(ng-star-inserted|ng-tns-|ng-touched|ng-untouched|ng-pristine|ng-dirty|ng-valid|ng-invalid|ng-pending|ng-submitted|ng-animate-disabled|cdk-)/;
     const classes = Array.from(el.classList).filter(
       (c) => c !== "dom-sync-highlight" && !RUNTIME.test(c)
     );
@@ -170,7 +171,9 @@
 
     // Specific classes (BEM names with __ or --, long identifiers) are highly discriminating.
     // Generic utility classes (short, no BEM separators) appear in many components.
-    const specificClasses = classes.filter((c) => c.includes("__") || c.includes("--") || c.length > 15);
+    const specificClasses = classes.filter(
+      (c) => c.includes("__") || c.includes("--") || c.length > 15
+    );
 
     let bestMatch = null;
     let bestScore = 0;
@@ -869,7 +872,8 @@
                   const row = inputs[jsxKey].closest(".dom-sync-style-row");
                   if (row) {
                     const hint = document.createElement("span");
-                    hint.style.cssText = "font-size:10px;opacity:0.5;margin-left:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;";
+                    hint.style.cssText =
+                      "font-size:10px;opacity:0.5;margin-left:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;";
                     hint.textContent = value;
                     hint.title = value;
                     row.insertBefore(hint, row.querySelector(".dom-sync-remove-btn"));
@@ -1359,11 +1363,22 @@
       sendResponse({ active: !!window.__domSyncActive });
     } else if (msg.type === "stop") {
       // Remove all hover/click listeners immediately
-      if (listenerController) { listenerController.abort(); listenerController = null; }
+      if (listenerController) {
+        listenerController.abort();
+        listenerController = null;
+      }
       // Clean up UI
-      if (hideTimeout) { clearTimeout(hideTimeout); hideTimeout = null; }
-      if (tooltip) { tooltip.style.display = "none"; }
-      if (currentTarget) { currentTarget.classList.remove("dom-sync-highlight"); currentTarget = null; }
+      if (hideTimeout) {
+        clearTimeout(hideTimeout);
+        hideTimeout = null;
+      }
+      if (tooltip) {
+        tooltip.style.display = "none";
+      }
+      if (currentTarget) {
+        currentTarget.classList.remove("dom-sync-highlight");
+        currentTarget = null;
+      }
       closeInlineEdit();
       const toast = document.getElementById("dom-sync-toast");
       if (toast) toast.remove();
@@ -1371,8 +1386,18 @@
         el.classList.remove("dom-sync-highlight");
       });
       locked = false;
-      if (ws) { try { ws.close(); } catch {} ws = null; }
-      if (window.__domSyncWS) { try { window.__domSyncWS.close(); } catch {} window.__domSyncWS = null; }
+      if (ws) {
+        try {
+          ws.close();
+        } catch {}
+        ws = null;
+      }
+      if (window.__domSyncWS) {
+        try {
+          window.__domSyncWS.close();
+        } catch {}
+        window.__domSyncWS = null;
+      }
       window.__domSyncActive = false;
       window.__domSyncListenersAttached = false;
       sendResponse({ stopped: true });

@@ -83,7 +83,6 @@ async function init() {
   activateBtn.disabled = false;
 }
 
-
 // Stop Tweakr on current tab
 stopBtn.addEventListener("click", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -130,6 +129,7 @@ activateBtn.addEventListener("click", async () => {
     statusEl.className = "status offline";
     console.error("[Tweakr] Injection failed:", err);
     const msg = err?.message || err?.toString?.() || String(err) || "";
-    statusTextEl.textContent = msg && msg !== "Error" ? msg : "Injection failed — check popup DevTools console";
+    statusTextEl.textContent =
+      msg && msg !== "Error" ? msg : "Injection failed — check popup DevTools console";
   }
 });

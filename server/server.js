@@ -370,7 +370,8 @@ function escapeRegex(str) {
 }
 
 // Runtime-only classes injected by frameworks that won't appear in source templates
-const RUNTIME_CLASS_RE = /^(ng-star-inserted|ng-tns-|ng-trig$|ng-touched$|ng-untouched$|ng-pristine$|ng-dirty$|ng-valid$|ng-invalid$|ng-pending$|ng-submitted$|ng-animate-disabled$|cdk-)/;
+const RUNTIME_CLASS_RE =
+  /^(ng-star-inserted|ng-tns-|ng-trig$|ng-touched$|ng-untouched$|ng-pristine$|ng-dirty$|ng-valid$|ng-invalid$|ng-pending$|ng-submitted$|ng-animate-disabled$|cdk-)/;
 
 function stripRuntimeClasses(classes) {
   return (classes || []).filter((c) => !RUNTIME_CLASS_RE.test(c));
@@ -454,7 +455,10 @@ function findMatchingPattern(source, info) {
     const captureTag = `<([a-zA-Z][a-zA-Z0-9:-]*)`;
     // Try all stripped classes on any tag
     const allClasses = strippedClasses.map((c) => `(?=[^"']*${escapeRegex(c)})`).join("");
-    let m = new RegExp(`${captureTag}[^>]*class(?:Name)?=["']${allClasses}[^"']*["'][^>]*>`, "s").exec(source);
+    let m = new RegExp(
+      `${captureTag}[^>]*class(?:Name)?=["']${allClasses}[^"']*["'][^>]*>`,
+      "s"
+    ).exec(source);
     if (m) {
       const matchedTag = m[1];
       const opening = `<${matchedTag}[^>]*class(?:Name)?=["']${allClasses}[^"']*["'][^>]*`;
@@ -462,7 +466,10 @@ function findMatchingPattern(source, info) {
     }
     // Try first class only
     const firstClass = escapeRegex(strippedClasses[0]);
-    m = new RegExp(`${captureTag}[^>]*class(?:Name)?=["'][^"']*${firstClass}[^"']*["'][^>]*>`, "s").exec(source);
+    m = new RegExp(
+      `${captureTag}[^>]*class(?:Name)?=["'][^"']*${firstClass}[^"']*["'][^>]*>`,
+      "s"
+    ).exec(source);
     if (m) {
       const matchedTag = m[1];
       const opening = `<${matchedTag}[^>]*class(?:Name)?=["'][^"']*${firstClass}[^"']*["'][^>]*`;
@@ -545,8 +552,7 @@ function findFileWithElement(info, skipFilePath) {
     .filter((f) => f !== skipFilePath && !(/\.ts$/.test(f) && !/\.tsx$/.test(f)))
     .sort((a, b) => {
       // Prefer .component.html, then other .html, then the rest
-      const rank = (f) =>
-        f.endsWith(".component.html") ? 0 : /\.html?$/.test(f) ? 1 : 2;
+      const rank = (f) => (f.endsWith(".component.html") ? 0 : /\.html?$/.test(f) ? 1 : 2);
       return rank(a) - rank(b);
     });
 
@@ -770,8 +776,7 @@ function splitBemSelector(selector) {
   if (!cls) return null;
   const elemIdx = cls.indexOf("__");
   const modIdx = cls.indexOf("--");
-  const splitIdx =
-    elemIdx !== -1 && (modIdx === -1 || elemIdx < modIdx) ? elemIdx : modIdx;
+  const splitIdx = elemIdx !== -1 && (modIdx === -1 || elemIdx < modIdx) ? elemIdx : modIdx;
   if (splitIdx === -1) return null;
   return { block: "." + cls.slice(0, splitIdx), suffix: cls.slice(splitIdx) };
 }
@@ -1119,7 +1124,13 @@ const server = http.createServer((req, res) => {
             if (colonIdx === -1) return;
             const prop = trimmed.slice(0, colonIdx).trim();
             const val = trimmed.slice(colonIdx + 1).trim();
-            if (prop && val && !prop.startsWith("@") && !prop.startsWith("&") && !prop.startsWith("//")) {
+            if (
+              prop &&
+              val &&
+              !prop.startsWith("@") &&
+              !prop.startsWith("&") &&
+              !prop.startsWith("//")
+            ) {
               props[prop] = val;
             }
           });
@@ -1609,9 +1620,7 @@ wss.on("connection", (socket) => {
           }
         }
         cssSource =
-          cssSource.slice(0, cssBlock.bodyStart) +
-          blockBody +
-          cssSource.slice(cssBlock.bodyEnd);
+          cssSource.slice(0, cssBlock.bodyStart) + blockBody + cssSource.slice(cssBlock.bodyEnd);
       } else {
         cssSource = cssSource.trimEnd() + `\n\n${targetSelector} {\n${cssPropsToWrite}\n}\n`;
       }
