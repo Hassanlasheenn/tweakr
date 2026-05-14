@@ -27,6 +27,9 @@ jobs:
       - name: Lint
         run: npm run lint --workspace=extension
 
+      - name: Format
+        run: npm run format --workspace=extension
+
       - name: Format check
         run: npm run format:check --workspace=extension
 
@@ -72,6 +75,9 @@ jobs:
 
       - name: Lint
         run: npm run lint --workspace=server
+
+      - name: Format
+        run: npm run format --workspace=server
 
       - name: Format check
         run: npm run format:check --workspace=server
