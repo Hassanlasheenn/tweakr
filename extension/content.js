@@ -895,55 +895,60 @@
 
         // --- Element context badges ---
         const badgeRow = document.createElement("div");
-        badgeRow.style.cssText = "display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;";
+        badgeRow.style.cssText = "display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;";
 
         const uniqueFiles = [...new Set([...propMap.values()].filter((p) => p.file).map((p) => p.file))];
         const hasComponent = [...propMap.values()].some((p) => p.scope === "component");
+        const sharedCount = hasSharedRules
+          ? Math.max(...[...propMap.values()].filter((p) => p.isShared).map((p) => p.usedBy.length), 0)
+          : 0;
 
         if (hasComponent) {
           badgeRow.appendChild(makeBadge("Component", "#a5b4fc", "#1e1b4b",
-            uniqueFiles.filter((f) => f.scope === "component").join("\n") || uniqueFiles[0] || ""));
+            `Styles are in this component's own CSS file.\n${uniqueFiles[0] || ""}`));
         }
         if (hasSharedRules) {
-          const sharedCount = Math.max(...[...propMap.values()].filter((p) => p.isShared).map((p) => p.usedBy.length), 0);
           badgeRow.appendChild(makeBadge(
-            `Shared${sharedCount > 1 ? ` (${sharedCount})` : ""}`,
+            `⚠ Shared · ${sharedCount} components`,
             "#fbbf24", "#1c1400",
-            "This style is used by multiple components — editing affects all of them"
+            `This CSS class is shared across ${sharedCount} components.\nEditing it will change the appearance of ALL of them.`
           ));
         }
         if (elementMeta?.isDynamic) {
-          badgeRow.appendChild(makeBadge("Dynamic data", "#60a5fa", "#0c1a2e",
-            "Element contains backend-bound data (Angular bindings, *ngFor, *ngIf)"));
+          badgeRow.appendChild(makeBadge("⚡ Dynamic data", "#60a5fa", "#0c1a2e",
+            "This element's content is bound to backend data.\nOnly edit styles here — do not edit the text content."));
         }
         if (elementMeta?.isTranslated) {
-          badgeRow.appendChild(makeBadge("Translated", "#c084fc", "#180a2e",
-            "Text is a translation key (| translate / i18n)"));
+          badgeRow.appendChild(makeBadge("🌐 Translated", "#c084fc", "#180a2e",
+            "This element's text is a translation key.\nEdit the translation file to change the text, not the source HTML."));
         }
         if (propMap.size === 0) {
           badgeRow.appendChild(makeBadge("No styles detected", "#9ca3af", "#111", ""));
         }
         if (badgeRow.children.length > 0) sourceRulesContainer.appendChild(badgeRow);
 
-        // --- Scope toggle (if shared rules exist) ---
+        // --- Scope toggle (only when shared rules exist) ---
         if (hasSharedRules) {
+          // Warning banner explaining the impact
+          const warning = document.createElement("div");
+          warning.style.cssText =
+            "font-size:11px;color:#fbbf24;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:8px;padding:7px 10px;margin-bottom:10px;line-height:1.5;";
+          warning.textContent =
+            `⚠ Some styles here are shared across ${sharedCount} components. Choose where to save your changes:`;
+          sourceRulesContainer.appendChild(warning);
+
           const scopeRow = document.createElement("div");
           scopeRow.className = "dom-sync-scope-toggle";
-          const scopeLabel = document.createElement("span");
-          scopeLabel.className = "dom-sync-edit-label";
-          scopeLabel.textContent = "Apply to";
-          scopeLabel.style.minWidth = "auto";
           const globalBtn = document.createElement("button");
           globalBtn.className = "dom-sync-scope-btn active";
-          globalBtn.textContent = "All components";
-          globalBtn.title = "Edit the shared CSS file — affects all components using this class";
+          globalBtn.textContent = `All ${sharedCount} components`;
+          globalBtn.title = `Save to the shared CSS file — every component using this class will change`;
           const localBtn = document.createElement("button");
           localBtn.className = "dom-sync-scope-btn";
-          localBtn.textContent = "This component";
-          localBtn.title = "Create a local override in this component's CSS file only";
+          localBtn.textContent = "This component only";
+          localBtn.title = "Add a CSS override in this component's file — other components stay the same";
           globalBtn.addEventListener("click", (e) => { e.stopPropagation(); selectedScope = "global"; globalBtn.classList.add("active"); localBtn.classList.remove("active"); });
           localBtn.addEventListener("click", (e) => { e.stopPropagation(); selectedScope = "local"; localBtn.classList.add("active"); globalBtn.classList.remove("active"); });
-          scopeRow.appendChild(scopeLabel);
           scopeRow.appendChild(globalBtn);
           scopeRow.appendChild(localBtn);
           sourceRulesContainer.appendChild(scopeRow);
@@ -994,8 +999,14 @@
                 // Tag computed/shared source inline
                 if (isComputed || isShared) {
                   const tag = document.createElement("span");
-                  tag.style.cssText = `font-size:9px;opacity:0.45;font-style:italic;margin-left:2px;color:${isShared ? "#fbbf24" : "#9ca3af"};`;
-                  tag.textContent = isComputed ? "computed" : "shared";
+                  tag.style.cssText = `font-size:9px;font-style:italic;margin-left:2px;color:${isShared ? "#fbbf24" : "#9ca3af"};opacity:0.7;`;
+                  if (isComputed) {
+                    tag.textContent = "browser-computed";
+                    tag.title = "Value comes from a compound CSS selector — edits will be saved to this component's CSS file";
+                  } else {
+                    tag.textContent = `shared · ${sharedCount} components`;
+                    tag.title = `This property is in a shared CSS class used by ${sharedCount} components. Use "This component only" to avoid affecting others.`;
+                  }
                   if (row) row.insertBefore(tag, row.querySelector(".dom-sync-remove-btn"));
                 }
               }
