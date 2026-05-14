@@ -737,8 +737,13 @@
         });
         textInput.addEventListener("input", () => {
           if (/^#[0-9a-f]{3,8}$/i.test(textInput.value)) {
-            colorInput.value = textInput.value;
-            el.style[jsxKey] = textInput.value;
+            const hex = textInput.value;
+            // <input type="color"> requires full 6-digit hex — expand #abc → #aabbcc
+            const fullHex = /^#[0-9a-f]{3}$/i.test(hex)
+              ? "#" + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3]
+              : hex;
+            colorInput.value = fullHex;
+            el.style[jsxKey] = hex;
           }
         });
 
