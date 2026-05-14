@@ -808,28 +808,74 @@
       {
         label: "Appearance",
         props: [
-          "background-color", "background", "background-image", "opacity",
-          "border-radius", "border", "border-color", "border-width", "border-style",
-          "box-shadow", "outline", "visibility",
+          "background-color",
+          "background",
+          "background-image",
+          "opacity",
+          "border-radius",
+          "border",
+          "border-color",
+          "border-width",
+          "border-style",
+          "box-shadow",
+          "outline",
+          "visibility",
         ],
       },
       {
         label: "Layout",
         props: [
-          "display", "position", "width", "height", "min-width", "max-width",
-          "min-height", "max-height", "padding", "padding-top", "padding-right",
-          "padding-bottom", "padding-left", "margin", "margin-top", "margin-right",
-          "margin-bottom", "margin-left", "gap", "row-gap", "column-gap",
-          "flex-direction", "align-items", "justify-content", "flex-wrap", "flex",
-          "align-self", "justify-self", "overflow", "overflow-x", "overflow-y",
-          "z-index", "top", "right", "bottom", "left",
+          "display",
+          "position",
+          "width",
+          "height",
+          "min-width",
+          "max-width",
+          "min-height",
+          "max-height",
+          "padding",
+          "padding-top",
+          "padding-right",
+          "padding-bottom",
+          "padding-left",
+          "margin",
+          "margin-top",
+          "margin-right",
+          "margin-bottom",
+          "margin-left",
+          "gap",
+          "row-gap",
+          "column-gap",
+          "flex-direction",
+          "align-items",
+          "justify-content",
+          "flex-wrap",
+          "flex",
+          "align-self",
+          "justify-self",
+          "overflow",
+          "overflow-x",
+          "overflow-y",
+          "z-index",
+          "top",
+          "right",
+          "bottom",
+          "left",
         ],
       },
       {
         label: "Typography",
         props: [
-          "color", "font-size", "font-weight", "font-family", "line-height",
-          "letter-spacing", "text-align", "text-decoration", "text-transform", "white-space",
+          "color",
+          "font-size",
+          "font-weight",
+          "font-family",
+          "line-height",
+          "letter-spacing",
+          "text-align",
+          "text-decoration",
+          "text-transform",
+          "white-space",
         ],
       },
     ];
@@ -869,7 +915,15 @@
             selectorMeta[selector] = { file, scope, usedBy };
             for (const [cssProp, value] of Object.entries(props)) {
               if (!propMap.has(cssProp)) {
-                propMap.set(cssProp, { value, selector, scope, file, usedBy, isComputed: false, isShared });
+                propMap.set(cssProp, {
+                  value,
+                  selector,
+                  scope,
+                  file,
+                  usedBy,
+                  isComputed: false,
+                  isShared,
+                });
               }
             }
           }
@@ -879,25 +933,56 @@
           for (const [jsxKey, value] of Object.entries(inlineStyles)) {
             const cssProp = jsxKey.replace(/([A-Z])/g, "-$1").toLowerCase();
             if (!propMap.has(cssProp)) {
-              propMap.set(cssProp, { value, selector: "inline", scope: "inline", file: null, usedBy: [], isComputed: false, isShared: false });
+              propMap.set(cssProp, {
+                value,
+                selector: "inline",
+                scope: "inline",
+                file: null,
+                usedBy: [],
+                isComputed: false,
+                isShared: false,
+              });
             }
           }
         }
 
         // Computed fallbacks for key visual properties not found in source rules
         // (e.g. background-color set via compound selector like .parent .child)
-        for (const cssProp of ["background-color", "background-image", "border-color", "box-shadow", "opacity"]) {
+        for (const cssProp of [
+          "background-color",
+          "background-image",
+          "border-color",
+          "box-shadow",
+          "opacity",
+        ]) {
           if (propMap.has(cssProp)) continue;
           const val = computed.getPropertyValue(cssProp).trim();
-          if (!val || val === "none" || val === "1" || val === "rgba(0, 0, 0, 0)" || val === "transparent") continue;
-          propMap.set(cssProp, { value: val, selector: "computed", scope: "computed", file: null, usedBy: [], isComputed: true, isShared: false });
+          if (
+            !val ||
+            val === "none" ||
+            val === "1" ||
+            val === "rgba(0, 0, 0, 0)" ||
+            val === "transparent"
+          )
+            continue;
+          propMap.set(cssProp, {
+            value: val,
+            selector: "computed",
+            scope: "computed",
+            file: null,
+            usedBy: [],
+            isComputed: true,
+            isShared: false,
+          });
         }
 
         // --- Element context badges ---
         const badgeRow = document.createElement("div");
         badgeRow.style.cssText = "display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;";
 
-        const uniqueFiles = [...new Set([...propMap.values()].filter((p) => p.file).map((p) => p.file))];
+        const uniqueFiles = [
+          ...new Set([...propMap.values()].filter((p) => p.file).map((p) => p.file)),
+        ];
         const hasComponent = [...propMap.values()].some((p) => p.scope === "component");
 
         // Collect unique component names across ALL shared rules (deduplicated)
@@ -913,27 +998,50 @@
         // Helper: extract a readable name from a file path
         function componentLabel(filePath) {
           const name = filePath.split("/").pop() || filePath;
-          return name.replace(/\.(component|page|module|service)\.(ts|html|js)$/, "").replace(/\.(ts|html|js)$/, "");
+          return name
+            .replace(/\.(component|page|module|service)\.(ts|html|js)$/, "")
+            .replace(/\.(ts|html|js)$/, "");
         }
 
         if (hasComponent) {
-          badgeRow.appendChild(makeBadge("Component", "#a5b4fc", "#1e1b4b",
-            `Styles are in this component's own CSS file.\n${uniqueFiles[0] || ""}`));
+          badgeRow.appendChild(
+            makeBadge(
+              "Component",
+              "#a5b4fc",
+              "#1e1b4b",
+              `Styles are in this component's own CSS file.\n${uniqueFiles[0] || ""}`
+            )
+          );
         }
         if (hasSharedRules) {
-          badgeRow.appendChild(makeBadge(
-            `⚠ Shared · ${sharedCount} components`,
-            "#fbbf24", "#1c1400",
-            `This CSS class is used by ${sharedCount} components:\n${sharedComponents.map(componentLabel).join("\n")}`
-          ));
+          badgeRow.appendChild(
+            makeBadge(
+              `⚠ Shared · ${sharedCount} components`,
+              "#fbbf24",
+              "#1c1400",
+              `This CSS class is used by ${sharedCount} components:\n${sharedComponents.map(componentLabel).join("\n")}`
+            )
+          );
         }
         if (elementMeta?.isDynamic) {
-          badgeRow.appendChild(makeBadge("⚡ Dynamic data", "#60a5fa", "#0c1a2e",
-            "This element's content is bound to backend data.\nOnly edit styles here — do not edit the text content."));
+          badgeRow.appendChild(
+            makeBadge(
+              "⚡ Dynamic data",
+              "#60a5fa",
+              "#0c1a2e",
+              "This element's content is bound to backend data.\nOnly edit styles here — do not edit the text content."
+            )
+          );
         }
         if (elementMeta?.isTranslated) {
-          badgeRow.appendChild(makeBadge("🌐 Translated", "#c084fc", "#180a2e",
-            "This element's text is a translation key.\nEdit the translation file to change the text, not the source HTML."));
+          badgeRow.appendChild(
+            makeBadge(
+              "🌐 Translated",
+              "#c084fc",
+              "#180a2e",
+              "This element's text is a translation key.\nEdit the translation file to change the text, not the source HTML."
+            )
+          );
         }
         if (propMap.size === 0) {
           badgeRow.appendChild(makeBadge("No styles detected", "#9ca3af", "#111", ""));
@@ -948,11 +1056,13 @@
             "font-size:11px;color:#fbbf24;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:8px;padding:8px 10px;margin-bottom:10px;line-height:1.6;";
 
           const warnHeader = document.createElement("div");
-          warnHeader.style.cssText = "display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;";
+          warnHeader.style.cssText =
+            "display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;";
           warnHeader.innerHTML = `<span>⚠ Shared with <strong>${sharedCount} components</strong> — changes affect all of them</span><span style="opacity:0.6;font-size:10px;">▼ show</span>`;
 
           const compList = document.createElement("div");
-          compList.style.cssText = "display:none;margin-top:7px;padding-top:7px;border-top:1px solid rgba(251,191,36,0.15);display:flex;flex-wrap:wrap;gap:4px;";
+          compList.style.cssText =
+            "display:none;margin-top:7px;padding-top:7px;border-top:1px solid rgba(251,191,36,0.15);display:flex;flex-wrap:wrap;gap:4px;";
           for (const comp of sharedComponents) {
             const chip = document.createElement("span");
             chip.textContent = componentLabel(comp);
@@ -983,9 +1093,20 @@
           const localBtn = document.createElement("button");
           localBtn.className = "dom-sync-scope-btn";
           localBtn.textContent = "This component only";
-          localBtn.title = "Adds a CSS override in this component's file — other components stay the same";
-          globalBtn.addEventListener("click", (e) => { e.stopPropagation(); selectedScope = "global"; globalBtn.classList.add("active"); localBtn.classList.remove("active"); });
-          localBtn.addEventListener("click", (e) => { e.stopPropagation(); selectedScope = "local"; localBtn.classList.add("active"); globalBtn.classList.remove("active"); });
+          localBtn.title =
+            "Adds a CSS override in this component's file — other components stay the same";
+          globalBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            selectedScope = "global";
+            globalBtn.classList.add("active");
+            localBtn.classList.remove("active");
+          });
+          localBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            selectedScope = "local";
+            localBtn.classList.add("active");
+            globalBtn.classList.remove("active");
+          });
           scopeRow.appendChild(globalBtn);
           scopeRow.appendChild(localBtn);
           sourceRulesContainer.appendChild(scopeRow);
@@ -1028,7 +1149,8 @@
                 if (isColor && isExpression) {
                   inputs[jsxKey].title = `Source: ${value}`;
                   const hint = document.createElement("span");
-                  hint.style.cssText = "font-size:10px;opacity:0.5;margin-left:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;";
+                  hint.style.cssText =
+                    "font-size:10px;opacity:0.5;margin-left:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;";
                   hint.textContent = value;
                   hint.title = value;
                   if (row) row.insertBefore(hint, row.querySelector(".dom-sync-remove-btn"));
@@ -1039,7 +1161,8 @@
                   tag.style.cssText = `font-size:9px;font-style:italic;margin-left:2px;color:${isShared ? "#fbbf24" : "#9ca3af"};opacity:0.7;`;
                   if (isComputed) {
                     tag.textContent = "browser-computed";
-                    tag.title = "Value comes from a compound CSS selector — edits will be saved to this component's CSS file";
+                    tag.title =
+                      "Value comes from a compound CSS selector — edits will be saved to this component's CSS file";
                   } else {
                     const propUsedBy = propMap.get(cssProp)?.usedBy || [];
                     const propNames = propUsedBy.map(componentLabel).join(", ");

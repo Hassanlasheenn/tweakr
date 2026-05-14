@@ -8,17 +8,43 @@ const PORT = parseInt(process.env.TWEAKR_PORT || process.env.PORT, 10) || 3333;
 const LOG_FILE = path.join(__dirname, "changes.log");
 
 // --- File type detection for multi-framework support ---
-const SOURCE_EXTENSIONS = /\.(jsx|tsx|vue|svelte|html|htm|js|ts|component\.html)$/;
+const SOURCE_EXTENSIONS =
+  /\.(jsx|tsx|vue|svelte|html|htm|js|ts|component\.html)$/;
 
 const SKIP_DIRS = new Set([
-  "node_modules", "dist", "build", ".git", ".next", ".nuxt",
-  "coverage", "__pycache__", ".cache", "out", ".output",
-  "public", "static", "assets", "vendor", "tmp", ".tmp",
-  "e2e", "cypress", "__tests__",
+  "node_modules",
+  "dist",
+  "build",
+  ".git",
+  ".next",
+  ".nuxt",
+  "coverage",
+  "__pycache__",
+  ".cache",
+  "out",
+  ".output",
+  "public",
+  "static",
+  "assets",
+  "vendor",
+  "tmp",
+  ".tmp",
+  "e2e",
+  "cypress",
+  "__tests__",
 ]);
 
 function detectSourceDirs(projectRoot) {
-  const candidates = ["src", "app", "pages", "components", "views", "features", "modules", "lib"];
+  const candidates = [
+    "src",
+    "app",
+    "pages",
+    "components",
+    "views",
+    "features",
+    "modules",
+    "lib",
+  ];
   const found = candidates
     .map((name) => path.join(projectRoot, name))
     .filter((dir) => fs.existsSync(dir) && fs.statSync(dir).isDirectory());
@@ -163,16 +189,22 @@ function syncTestFile(action, info, newText) {
       // Remove lines referencing #id selectors
       testSource = testSource.replace(
         new RegExp(`^.*['"\`]#${escapeRegex(id)}['"\`].*$`, "gm"),
-        ""
+        "",
       );
     }
     if (text) {
       // Remove lines referencing the element's text content
       const shortText = escapeRegex(text.slice(0, 40));
-      testSource = testSource.replace(new RegExp(`^.*${shortText}.*$`, "gmi"), "");
+      testSource = testSource.replace(
+        new RegExp(`^.*${shortText}.*$`, "gmi"),
+        "",
+      );
     }
     // Remove empty it() blocks left behind
-    testSource = testSource.replace(/it\([^)]*,\s*\(\)\s*=>\s*\{\s*\n(\s*\n)*\s*\}\);?\n?/g, "");
+    testSource = testSource.replace(
+      /it\([^)]*,\s*\(\)\s*=>\s*\{\s*\n(\s*\n)*\s*\}\);?\n?/g,
+      "",
+    );
     // Clean up multiple blank lines
     testSource = testSource.replace(/\n{3,}/g, "\n\n");
   } else if (action === "edit" && newText) {
@@ -181,25 +213,35 @@ function syncTestFile(action, info, newText) {
       // Replace exact text matches in getByText, queryByText, findByText
       const oldText = escapeRegex(text.slice(0, 60));
       testSource = testSource.replace(
-        new RegExp(`(getByText|queryByText|findByText)\\(\\s*/${oldText}/i\\s*\\)`, "gi"),
-        `$1(/${escapeRegex(newText)}/i)`
+        new RegExp(
+          `(getByText|queryByText|findByText)\\(\\s*/${oldText}/i\\s*\\)`,
+          "gi",
+        ),
+        `$1(/${escapeRegex(newText)}/i)`,
       );
       // Replace exact string matches
       testSource = testSource.replace(
-        new RegExp(`(getByText|queryByText|findByText)\\(['"]${oldText}['"]\\)`, "gi"),
-        `$1('${newText}')`
+        new RegExp(
+          `(getByText|queryByText|findByText)\\(['"]${oldText}['"]\\)`,
+          "gi",
+        ),
+        `$1('${newText}')`,
       );
       // Replace text in getByRole name patterns
       testSource = testSource.replace(
         new RegExp(`name:\\s*/${oldText}/i`, "gi"),
-        `name: /${escapeRegex(newText)}/i`
+        `name: /${escapeRegex(newText)}/i`,
       );
     }
   }
 
   if (testSource !== original) {
     fs.writeFileSync(testFile.absolute, testSource, "utf-8");
-    logChange("test-sync", testFile.relative, `Synced test file after ${action}`);
+    logChange(
+      "test-sync",
+      testFile.relative,
+      `Synced test file after ${action}`,
+    );
     console.log(`[Tweakr] Test file synced: ${testFile.relative}`);
   }
 }
@@ -223,7 +265,7 @@ function extractDirectText(html) {
       const isSelfClose =
         inner.endsWith("/") ||
         /^(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/i.test(
-          inner.split(/[\s>/]/)[0].replace(/^\//, "")
+          inner.split(/[\s>/]/)[0].replace(/^\//, ""),
         );
       const isComment = inner.startsWith("!") || inner.startsWith("?");
       if (!isComment) {
@@ -241,13 +283,17 @@ function extractDirectText(html) {
 
 function checkDynamicContent(source, info) {
   const match = findMatchingPattern(source, info);
-  if (!match || match.type === "self-closing") return { isDynamic: false, expressions: [] };
+  if (!match || match.type === "self-closing")
+    return { isDynamic: false, expressions: [] };
 
   // Use match.tag (actual source tag) — info.tag is the DOM tag and may differ
   // (e.g. Angular renders <button> as <a>). Using the wrong closing tag makes the
   // regex span far into the document and capture unrelated {{ }} expressions.
   const tag = match.tag;
-  const fullPattern = new RegExp(`${match.opening}>[\\s\\S]*?</${tag}\\s*>`, "s");
+  const fullPattern = new RegExp(
+    `${match.opening}>[\\s\\S]*?</${tag}\\s*>`,
+    "s",
+  );
   const m = source.match(fullPattern);
   if (!m) return { isDynamic: false, expressions: [] };
 
@@ -265,7 +311,8 @@ function checkDynamicContent(source, info) {
     if (!expr) continue;
     if (expr.includes("=>")) continue;
     if (expr.startsWith("/*")) continue;
-    if (expr.startsWith('"') || expr.startsWith("'") || expr.startsWith("`")) continue;
+    if (expr.startsWith('"') || expr.startsWith("'") || expr.startsWith("`"))
+      continue;
     expressions.push(expr);
   }
   return { isDynamic: expressions.length > 0, expressions };
@@ -276,7 +323,7 @@ function hasEventHandlers(source, info) {
   if (!match) return false;
   const openPattern = new RegExp(
     match.opening + (match.type === "self-closing" ? "\\s*/>" : ">"),
-    "s"
+    "s",
   );
   const m = source.match(openPattern);
   if (!m) return false;
@@ -297,7 +344,7 @@ function validateAction(action, source, info) {
     if (match) {
       const openPattern = new RegExp(
         match.opening + (match.type === "self-closing" ? "\\s*/>" : ">"),
-        "s"
+        "s",
       );
       const m = source.match(openPattern);
       if (m && /type=["'{]submit["'}]/.test(m[0])) {
@@ -309,7 +356,10 @@ function validateAction(action, source, info) {
   // Block edit/delete on elements with event handlers
   if (action === "delete" || action === "edit") {
     if (hasEventHandlers(source, info)) {
-      return { allowed: false, reason: "Cannot modify elements with event handlers" };
+      return {
+        allowed: false,
+        reason: "Cannot modify elements with event handlers",
+      };
     }
   }
 
@@ -317,7 +367,10 @@ function validateAction(action, source, info) {
   if (action === "edit" || action === "delete") {
     const { isDynamic, expressions } = checkDynamicContent(source, info);
     if (isDynamic) {
-      return { allowed: false, reason: `Contains dynamic data: ${expressions.join(", ")}` };
+      return {
+        allowed: false,
+        reason: `Contains dynamic data: ${expressions.join(", ")}`,
+      };
     }
   }
 
@@ -336,7 +389,8 @@ function escapeRegex(str) {
  * Supports both JSX (className) and HTML (class) syntax.
  */
 // Runtime-only classes injected by frameworks that won't appear in source templates
-const RUNTIME_CLASS_RE = /^(ng-star-inserted|ng-tns-|ng-trig$|ng-touched$|ng-untouched$|ng-pristine$|ng-dirty$|ng-valid$|ng-invalid$|ng-pending$|ng-submitted$|ng-animate-disabled$|cdk-)/;
+const RUNTIME_CLASS_RE =
+  /^(ng-star-inserted|ng-tns-|ng-trig$|ng-touched$|ng-untouched$|ng-pristine$|ng-dirty$|ng-valid$|ng-invalid$|ng-pending$|ng-submitted$|ng-animate-disabled$|cdk-)/;
 
 function stripRuntimeClasses(classes) {
   return (classes || []).filter((c) => !RUNTIME_CLASS_RE.test(c));
@@ -350,20 +404,24 @@ function buildCandidatePatterns(info) {
   // Pattern by id (most reliable)
   if (id) {
     patterns.push(
-      `<${tag}[^>]*(?:id=["']${escapeRegex(id)}["']|id=\\{["'\`]${escapeRegex(id)}["'\`]\\})[^>]*`
+      `<${tag}[^>]*(?:id=["']${escapeRegex(id)}["']|id=\\{["'\`]${escapeRegex(id)}["'\`]\\})[^>]*`,
     );
   }
 
   // Pattern by class(es)
   if (classes && classes.length > 0) {
     // Try matching all classes together
-    const allClasses = classes.map((c) => `(?=[^"']*${escapeRegex(c)})`).join("");
-    patterns.push(`<${tag}[^>]*class(?:Name)?=["']${allClasses}[^"']*["'][^>]*`);
+    const allClasses = classes
+      .map((c) => `(?=[^"']*${escapeRegex(c)})`)
+      .join("");
+    patterns.push(
+      `<${tag}[^>]*class(?:Name)?=["']${allClasses}[^"']*["'][^>]*`,
+    );
 
     // Try matching first class only (less strict)
     if (classes.length > 1) {
       patterns.push(
-        `<${tag}[^>]*class(?:Name)?=["'][^"']*${escapeRegex(classes[0])}[^"']*["'][^>]*`
+        `<${tag}[^>]*class(?:Name)?=["'][^"']*${escapeRegex(classes[0])}[^"']*["'][^>]*`,
       );
     }
   }
@@ -414,8 +472,13 @@ function findMatchingPattern(source, info) {
   if (strippedClasses && strippedClasses.length > 0) {
     const captureTag = `<([a-zA-Z][a-zA-Z0-9:-]*)`;
     // Try all stripped classes on any tag
-    const allClasses = strippedClasses.map((c) => `(?=[^"']*${escapeRegex(c)})`).join("");
-    let m = new RegExp(`${captureTag}[^>]*class(?:Name)?=["']${allClasses}[^"']*["'][^>]*>`, "s").exec(source);
+    const allClasses = strippedClasses
+      .map((c) => `(?=[^"']*${escapeRegex(c)})`)
+      .join("");
+    let m = new RegExp(
+      `${captureTag}[^>]*class(?:Name)?=["']${allClasses}[^"']*["'][^>]*>`,
+      "s",
+    ).exec(source);
     if (m) {
       const matchedTag = m[1];
       const opening = `<${matchedTag}[^>]*class(?:Name)?=["']${allClasses}[^"']*["'][^>]*`;
@@ -423,7 +486,10 @@ function findMatchingPattern(source, info) {
     }
     // Try first class only
     const firstClass = escapeRegex(strippedClasses[0]);
-    m = new RegExp(`${captureTag}[^>]*class(?:Name)?=["'][^"']*${firstClass}[^"']*["'][^>]*>`, "s").exec(source);
+    m = new RegExp(
+      `${captureTag}[^>]*class(?:Name)?=["'][^"']*${firstClass}[^"']*["'][^>]*>`,
+      "s",
+    ).exec(source);
     if (m) {
       const matchedTag = m[1];
       const opening = `<${matchedTag}[^>]*class(?:Name)?=["'][^"']*${firstClass}[^"']*["'][^>]*`;
@@ -449,7 +515,10 @@ function deleteElement(source, info) {
   }
 
   // Full element with closing tag
-  const pattern = new RegExp(`[ \\t]*${match.opening}>[\\s\\S]*?</${tag}\\s*>[\\t ]*\\n?`, "s");
+  const pattern = new RegExp(
+    `[ \\t]*${match.opening}>[\\s\\S]*?</${tag}\\s*>[\\t ]*\\n?`,
+    "s",
+  );
   if (pattern.test(source)) {
     return source.replace(pattern, "");
   }
@@ -467,7 +536,10 @@ function editElement(source, info, newText) {
   if (match.type === "self-closing") return null; // can't edit text of self-closing
 
   const tag = match.tag;
-  const pattern = new RegExp(`(${match.opening}>)[\\s\\S]*?(</${tag}\\s*>)`, "s");
+  const pattern = new RegExp(
+    `(${match.opening}>)[\\s\\S]*?(</${tag}\\s*>)`,
+    "s",
+  );
 
   if (pattern.test(source)) {
     return source.replace(pattern, `$1${newText}$2`);
@@ -482,7 +554,8 @@ function editElement(source, info, newText) {
 function describeElement(info) {
   let desc = `<${info.tag}`;
   if (info.id) desc += ` id="${info.id}"`;
-  if (info.classes && info.classes.length) desc += ` class="${info.classes.join(" ")}"`;
+  if (info.classes && info.classes.length)
+    desc += ` class="${info.classes.join(" ")}"`;
   desc += ">";
   return desc;
 }
@@ -499,7 +572,9 @@ function findFileWithElement(info, skipFilePath) {
   }
 
   const candidates = allFiles
-    .filter((f) => f !== skipFilePath && !(/\.ts$/.test(f) && !/\.tsx$/.test(f)))
+    .filter(
+      (f) => f !== skipFilePath && !(/\.ts$/.test(f) && !/\.tsx$/.test(f)),
+    )
     .sort((a, b) => {
       const rank = (f) =>
         f.endsWith(".component.html") ? 0 : /\.html?$/.test(f) ? 1 : 2;
@@ -510,7 +585,11 @@ function findFileWithElement(info, skipFilePath) {
     try {
       const src = fs.readFileSync(f, "utf-8");
       if (findMatchingPattern(src, info)) {
-        return { filePath: f, relPath: path.relative(projectRoot, f), source: src };
+        return {
+          filePath: f,
+          relPath: path.relative(projectRoot, f),
+          source: src,
+        };
       }
     } catch {
       // unreadable file — skip
@@ -527,7 +606,8 @@ function getDefaultSource() {
     const files = findComponents(dir);
     if (files.length > 0) return path.relative(process.cwd(), files[0]);
   }
-  if (fs.existsSync(path.resolve(process.cwd(), "index.html"))) return "index.html";
+  if (fs.existsSync(path.resolve(process.cwd(), "index.html")))
+    return "index.html";
   return "src/index.html";
 }
 let DEFAULT_SOURCE = null; // lazy-initialized
@@ -541,7 +621,10 @@ function jsxToHtml(jsx) {
   // Remove function declaration and hooks
   html = html.replace(/^.*function\s+\w+.*\{$/gm, "");
   html = html.replace(/^\s*const\s+\[.*useState.*$/gm, "");
-  html = html.replace(/^\s*const\s+\w+\s*=\s*\(.*\)\s*=>\s*\{[\s\S]*?^\s*\};$/gm, "");
+  html = html.replace(
+    /^\s*const\s+\w+\s*=\s*\(.*\)\s*=>\s*\{[\s\S]*?^\s*\};$/gm,
+    "",
+  );
   // Extract return(...) content
   const returnMatch = html.match(/return\s*\(\s*([\s\S]*)\s*\);\s*\}?\s*$/m);
   if (returnMatch) {
@@ -678,7 +761,8 @@ function findImportedCss(source, componentDir) {
     if (fs.existsSync(resolved)) imports.push(resolved);
   }
   // Vue/Svelte <style src="...">
-  const styleSrcPattern = /<style[^>]+src=["']([^"']+\.(?:css|scss))["'][^>]*>/g;
+  const styleSrcPattern =
+    /<style[^>]+src=["']([^"']+\.(?:css|scss))["'][^>]*>/g;
   while ((m = styleSrcPattern.exec(source)) !== null) {
     const resolved = path.resolve(componentDir, m[1]);
     if (fs.existsSync(resolved)) imports.push(resolved);
@@ -742,7 +826,11 @@ function findScssBlock(cssSource, selector) {
     else if (cssSource[pos] === "}") depth--;
     pos++;
   }
-  return { headerStart: offset + nestedMatch.index, bodyStart: nestedBodyStart, bodyEnd: pos - 1 };
+  return {
+    headerStart: offset + nestedMatch.index,
+    bodyStart: nestedBodyStart,
+    bodyEnd: pos - 1,
+  };
 }
 
 function extractDirectCssDecls(body) {
@@ -774,7 +862,10 @@ function findSelectorAcrossFiles(selector, allCssFiles) {
 }
 
 function findComponentsUsingCssFile(cssFilePath, allJsxFiles) {
-  const cssRelPaths = [path.basename(cssFilePath), `./${path.basename(cssFilePath)}`];
+  const cssRelPaths = [
+    path.basename(cssFilePath),
+    `./${path.basename(cssFilePath)}`,
+  ];
   const users = [];
   for (const jsxFile of allJsxFiles) {
     try {
@@ -831,7 +922,10 @@ class RequestCache {
 
   getComponentsUsingCss(cssFilePath, allJsxFiles) {
     if (!(cssFilePath in this._componentCssUsers)) {
-      const cssRelPaths = [path.basename(cssFilePath), `./${path.basename(cssFilePath)}`];
+      const cssRelPaths = [
+        path.basename(cssFilePath),
+        `./${path.basename(cssFilePath)}`,
+      ];
       const users = [];
       for (const jsxFile of allJsxFiles) {
         const src = this.readFile(jsxFile);
@@ -951,10 +1045,14 @@ const server = http.createServer((req, res) => {
   // GET /agents/styles?file=src/components/LoginForm.jsx&tag=button&id=submit-btn&classes=btn,primary
   if (req.method === "GET" && url.pathname === "/agents/styles") {
     const componentFile =
-      url.searchParams.get("file") || DEFAULT_SOURCE || (DEFAULT_SOURCE = getDefaultSource());
+      url.searchParams.get("file") ||
+      DEFAULT_SOURCE ||
+      (DEFAULT_SOURCE = getDefaultSource());
     const tag = url.searchParams.get("tag") || "";
     const id = url.searchParams.get("id") || "";
-    const classes = (url.searchParams.get("classes") || "").split(",").filter(Boolean);
+    const classes = (url.searchParams.get("classes") || "")
+      .split(",")
+      .filter(Boolean);
 
     try {
       const cache = new RequestCache();
@@ -965,7 +1063,9 @@ const server = http.createServer((req, res) => {
 
       const allCssFiles = cache.getAllCssFiles();
       const allJsxFiles = cache.getAllJsxFiles();
-      const jsxSource = fs.existsSync(componentPath) ? cache.readFile(componentPath) : "";
+      const jsxSource = fs.existsSync(componentPath)
+        ? cache.readFile(componentPath)
+        : "";
       const importedCss = jsxSource ? findImportedCss(jsxSource, dir) : [];
 
       // Build ordered CSS file list: component CSS first, then imports, then global/others
@@ -997,22 +1097,32 @@ const server = http.createServer((req, res) => {
       function selectorMatchesElement(selector) {
         if (
           id &&
-          new RegExp(`#${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?=[.#:\\s,{]|$)`).test(selector)
+          new RegExp(
+            `#${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?=[.#:\\s,{]|$)`,
+          ).test(selector)
         )
           return true;
         for (const cls of classes) {
           const escaped = cls.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-          if (new RegExp(`\\.${escaped}(?=[.#:\\s,{]|$)`).test(selector)) return true;
+          if (new RegExp(`\\.${escaped}(?=[.#:\\s,{]|$)`).test(selector))
+            return true;
         }
-        if (tag && new RegExp(`(^|[\\s,])${tag}([.#:\\s,{]|$)`).test(selector)) return true;
+        if (tag && new RegExp(`(^|[\\s,])${tag}([.#:\\s,{]|$)`).test(selector))
+          return true;
         return false;
       }
 
       const stylesCandidates = [];
       if (classes.length > 0) {
-        const bemClasses = classes.filter((c) => c.includes("__") || c.includes("--"));
-        const otherClasses = classes.filter((c) => !c.includes("__") && !c.includes("--"));
-        [...bemClasses, ...otherClasses].forEach((c) => stylesCandidates.push(`.${c}`));
+        const bemClasses = classes.filter(
+          (c) => c.includes("__") || c.includes("--"),
+        );
+        const otherClasses = classes.filter(
+          (c) => !c.includes("__") && !c.includes("--"),
+        );
+        [...bemClasses, ...otherClasses].forEach((c) =>
+          stylesCandidates.push(`.${c}`),
+        );
       }
       if (id) stylesCandidates.push(`#${id}`);
       if (tag) stylesCandidates.push(tag);
@@ -1030,7 +1140,9 @@ const server = http.createServer((req, res) => {
           const block = findScssBlock(cssSource, sel);
           if (!block) continue;
 
-          const body = extractDirectCssDecls(cssSource.slice(block.bodyStart, block.bodyEnd));
+          const body = extractDirectCssDecls(
+            cssSource.slice(block.bodyStart, block.bodyEnd),
+          );
           const props = {};
           body.split(";").forEach((decl) => {
             const trimmed = decl.trim();
@@ -1039,7 +1151,13 @@ const server = http.createServer((req, res) => {
             if (colonIdx === -1) return;
             const prop = trimmed.slice(0, colonIdx).trim();
             const val = trimmed.slice(colonIdx + 1).trim();
-            if (prop && val && !prop.startsWith("@") && !prop.startsWith("&") && !prop.startsWith("//")) {
+            if (
+              prop &&
+              val &&
+              !prop.startsWith("@") &&
+              !prop.startsWith("&") &&
+              !prop.startsWith("//")
+            ) {
               props[prop] = val;
             }
           });
@@ -1071,7 +1189,7 @@ const server = http.createServer((req, res) => {
         if (match) {
           const openPattern = new RegExp(
             match.opening + (match.type === "self-closing" ? "\\s*/>" : ">"),
-            "s"
+            "s",
           );
           const m = jsxSource.match(openPattern);
           if (m) {
@@ -1100,14 +1218,28 @@ const server = http.createServer((req, res) => {
       // Detect element meta: dynamic bindings and translation keys in source
       const elementMeta = { isDynamic: false, isTranslated: false };
       if (jsxSource) {
-        const info = { tag, id, classes: classes.filter((c) => !c.startsWith("ng-")), text: "" };
+        const info = {
+          tag,
+          id,
+          classes: classes.filter((c) => !c.startsWith("ng-")),
+          text: "",
+        };
         const match = findMatchingPattern(jsxSource, info);
         if (match) {
-          const openIdx = jsxSource.search(new RegExp(match.opening.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+          const openIdx = jsxSource.search(
+            new RegExp(match.opening.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+          );
           if (openIdx !== -1) {
-            const snippet = jsxSource.slice(openIdx, Math.min(openIdx + 600, jsxSource.length));
-            elementMeta.isDynamic = /\{\{[^}]+\}\}|\[[\w.]+\]=|\*ngFor|\*ngIf|\basync\b/.test(snippet);
-            elementMeta.isTranslated = /\|\s*translate|\btransloco\b|\bi18n\b|translate="/.test(snippet);
+            const snippet = jsxSource.slice(
+              openIdx,
+              Math.min(openIdx + 600, jsxSource.length),
+            );
+            elementMeta.isDynamic =
+              /\{\{[^}]+\}\}|\[[\w.]+\]=|\*ngFor|\*ngIf|\basync\b/.test(
+                snippet,
+              );
+            elementMeta.isTranslated =
+              /\|\s*translate|\btransloco\b|\bi18n\b|translate="/.test(snippet);
           }
         }
       }
@@ -1116,14 +1248,16 @@ const server = http.createServer((req, res) => {
       res.end(
         JSON.stringify(
           {
-            cssFile: componentCssFile ? path.relative(process.cwd(), componentCssFile) : null,
+            cssFile: componentCssFile
+              ? path.relative(process.cwd(), componentCssFile)
+              : null,
             rules,
             inlineStyles,
             elementMeta,
           },
           null,
-          2
-        )
+          2,
+        ),
       );
     } catch (err) {
       res.writeHead(500, { "Content-Type": "application/json" });
@@ -1138,7 +1272,9 @@ const server = http.createServer((req, res) => {
       const status = safeExec("git status --short");
       const diff = safeExec("git diff");
       const staged = safeExec("git diff --staged");
-      const log = fs.existsSync(LOG_FILE) ? fs.readFileSync(LOG_FILE, "utf-8") : "";
+      const log = fs.existsSync(LOG_FILE)
+        ? fs.readFileSync(LOG_FILE, "utf-8")
+        : "";
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify(
@@ -1149,8 +1285,8 @@ const server = http.createServer((req, res) => {
             changeLog: log.split("\n").filter(Boolean),
           },
           null,
-          2
-        )
+          2,
+        ),
       );
     } catch (err) {
       res.writeHead(500, { "Content-Type": "application/json" });
@@ -1176,7 +1312,9 @@ const server = http.createServer((req, res) => {
 
         // Stage files (or all if not specified)
         const filesToStage =
-          files && files.length > 0 ? files.map((f) => `"${f}"`).join(" ") : "-A";
+          files && files.length > 0
+            ? files.map((f) => `"${f}"`).join(" ")
+            : "-A";
         safeExec(`git add ${filesToStage}`);
 
         // Commit
@@ -1197,8 +1335,8 @@ const server = http.createServer((req, res) => {
               output: result,
             },
             null,
-            2
-          )
+            2,
+          ),
         );
       } catch (err) {
         res.writeHead(500, { "Content-Type": "application/json" });
@@ -1211,12 +1349,18 @@ const server = http.createServer((req, res) => {
   // GET /agents/plan — get current state for planning
   if (req.method === "GET" && url.pathname === "/agents/plan") {
     const targetFile =
-      url.searchParams.get("file") || DEFAULT_SOURCE || (DEFAULT_SOURCE = getDefaultSource());
+      url.searchParams.get("file") ||
+      DEFAULT_SOURCE ||
+      (DEFAULT_SOURCE = getDefaultSource());
     const filePath = path.resolve(process.cwd(), targetFile);
     try {
-      const source = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf-8") : null;
+      const source = fs.existsSync(filePath)
+        ? fs.readFileSync(filePath, "utf-8")
+        : null;
       const diff = safeExec(`git diff -- "${targetFile}"`);
-      const log = fs.existsSync(LOG_FILE) ? fs.readFileSync(LOG_FILE, "utf-8") : "";
+      const log = fs.existsSync(LOG_FILE)
+        ? fs.readFileSync(LOG_FILE, "utf-8")
+        : "";
 
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(
@@ -1229,8 +1373,8 @@ const server = http.createServer((req, res) => {
             recentChanges: log.split("\n").filter(Boolean).slice(-10),
           },
           null,
-          2
-        )
+          2,
+        ),
       );
     } catch (err) {
       res.writeHead(500, { "Content-Type": "application/json" });
@@ -1265,7 +1409,7 @@ wss.on("connection", (socket) => {
         JSON.stringify({
           success: false,
           message: "Missing action or file field",
-        })
+        }),
       );
       return;
     }
@@ -1276,13 +1420,18 @@ wss.on("connection", (socket) => {
     // Security: prevent path traversal outside CWD
     if (!filePath.startsWith(process.cwd())) {
       socket.send(
-        JSON.stringify({ success: false, message: "File path outside project directory" })
+        JSON.stringify({
+          success: false,
+          message: "File path outside project directory",
+        }),
       );
       return;
     }
 
     if (!fs.existsSync(filePath)) {
-      socket.send(JSON.stringify({ success: false, message: `File not found: ${file}` }));
+      socket.send(
+        JSON.stringify({ success: false, message: `File not found: ${file}` }),
+      );
       return;
     }
 
@@ -1293,7 +1442,7 @@ wss.on("connection", (socket) => {
         JSON.stringify({
           success: false,
           message: `Cannot edit TypeScript source (${file}). Tweakr edits HTML templates — refresh the page and try again.`,
-        })
+        }),
       );
       return;
     }
@@ -1302,7 +1451,12 @@ wss.on("connection", (socket) => {
     try {
       source = fs.readFileSync(filePath, "utf-8");
     } catch (err) {
-      socket.send(JSON.stringify({ success: false, message: `Cannot read file: ${err.message}` }));
+      socket.send(
+        JSON.stringify({
+          success: false,
+          message: `Cannot read file: ${err.message}`,
+        }),
+      );
       return;
     }
 
@@ -1326,7 +1480,9 @@ wss.on("connection", (socket) => {
     // Validate action is allowed
     const validation = validateAction(action, effectiveSource, effectiveMsg);
     if (!validation.allowed) {
-      socket.send(JSON.stringify({ success: false, message: validation.reason }));
+      socket.send(
+        JSON.stringify({ success: false, message: validation.reason }),
+      );
       return;
     }
 
@@ -1337,7 +1493,7 @@ wss.on("connection", (socket) => {
           JSON.stringify({
             success: false,
             message: `Could not find ${desc} in any project file`,
-          })
+          }),
         );
         return;
       }
@@ -1346,11 +1502,15 @@ wss.on("connection", (socket) => {
       fs.writeFileSync(effectiveFilePath, result, "utf-8");
       logChange("delete", effectiveFile, `Deleted ${desc}`);
       syncTestFile("delete", effectiveMsg);
-      socket.send(JSON.stringify({ success: true, message: "Deleted successfully!" }));
+      socket.send(
+        JSON.stringify({ success: true, message: "Deleted successfully!" }),
+      );
     } else if (action === "edit") {
       const { newText } = msg;
       if (!newText) {
-        socket.send(JSON.stringify({ success: false, message: "Missing newText field" }));
+        socket.send(
+          JSON.stringify({ success: false, message: "Missing newText field" }),
+        );
         return;
       }
 
@@ -1360,7 +1520,7 @@ wss.on("connection", (socket) => {
           JSON.stringify({
             success: false,
             message: `Could not find ${desc} in any project file`,
-          })
+          }),
         );
         return;
       }
@@ -1373,12 +1533,21 @@ wss.on("connection", (socket) => {
         JSON.stringify({
           success: true,
           message: "Edited successfully!",
-        })
+        }),
       );
     } else if (action === "edit-style") {
       const { styles } = msg;
-      if (!styles || typeof styles !== "object" || Object.keys(styles).length === 0) {
-        socket.send(JSON.stringify({ success: false, message: "Missing or empty styles field" }));
+      if (
+        !styles ||
+        typeof styles !== "object" ||
+        Object.keys(styles).length === 0
+      ) {
+        socket.send(
+          JSON.stringify({
+            success: false,
+            message: "Missing or empty styles field",
+          }),
+        );
         return;
       }
 
@@ -1388,7 +1557,7 @@ wss.on("connection", (socket) => {
           JSON.stringify({
             success: false,
             message: `Could not find ${desc} in any project file`,
-          })
+          }),
         );
         return;
       }
@@ -1467,7 +1636,10 @@ wss.on("connection", (socket) => {
               if (!src) continue;
               if (selectorExistsInCss(src, sel)) {
                 const fileScope = classifyCssFile(cssFile);
-                const usedBy = cache.getComponentsUsingCss(cssFile, allJsxFiles);
+                const usedBy = cache.getComponentsUsingCss(
+                  cssFile,
+                  allJsxFiles,
+                );
                 const isShared = usedBy.length > 1 || fileScope === "global";
 
                 if (isShared && editScope === "local") {
@@ -1485,11 +1657,18 @@ wss.on("connection", (socket) => {
       }
 
       // Redirect to component CSS when: nothing found at all, or scope=local on a shared file.
-      if (!cssFilePath || (editScope === "local" && cssFilePath !== componentCssFile)) {
+      if (
+        !cssFilePath ||
+        (editScope === "local" && cssFilePath !== componentCssFile)
+      ) {
         if (!componentCssFile) {
           componentCssFile = path.join(dir, `${base}.css`);
           cssSource = "";
-          effectiveSource = addCssImport(effectiveSource, `${base}.css`, effectiveFile);
+          effectiveSource = addCssImport(
+            effectiveSource,
+            `${base}.css`,
+            effectiveFile,
+          );
         } else {
           cssSource = cache.readFile(componentCssFile) || "";
         }
@@ -1530,9 +1709,15 @@ wss.on("connection", (socket) => {
         let blockBody = cssSource.slice(cssBlock.bodyStart, cssBlock.bodyEnd);
         for (const [jsxKey, value] of Object.entries(styles)) {
           const cssProp = camelToKebab(jsxKey);
-          const propPattern = new RegExp(`(\\s*)${cssProp.replace(/[-]/g, "\\-")}\\s*:[^;]*;`, "s");
+          const propPattern = new RegExp(
+            `(\\s*)${cssProp.replace(/[-]/g, "\\-")}\\s*:[^;]*;`,
+            "s",
+          );
           if (propPattern.test(blockBody)) {
-            blockBody = blockBody.replace(propPattern, `$1${cssProp}: ${value};`);
+            blockBody = blockBody.replace(
+              propPattern,
+              `$1${cssProp}: ${value};`,
+            );
           } else {
             blockBody = blockBody.trimEnd() + `\n  ${cssProp}: ${value};\n`;
           }
@@ -1542,7 +1727,9 @@ wss.on("connection", (socket) => {
           blockBody +
           cssSource.slice(cssBlock.bodyEnd);
       } else {
-        cssSource = cssSource.trimEnd() + `\n\n${targetSelector} {\n${cssPropsToWrite}\n}\n`;
+        cssSource =
+          cssSource.trimEnd() +
+          `\n\n${targetSelector} {\n${cssPropsToWrite}\n}\n`;
       }
 
       // Write files and invalidate cache
@@ -1555,17 +1742,23 @@ wss.on("connection", (socket) => {
       const styleDesc = Object.entries(styles)
         .map(([k, v]) => `${camelToKebab(k)}: ${v}`)
         .join(", ");
-      logChange("edit-style", cssRelPath, `${targetSelector} { ${styleDesc} }${scopeLabel}`);
+      logChange(
+        "edit-style",
+        cssRelPath,
+        `${targetSelector} { ${styleDesc} }${scopeLabel}`,
+      );
       socket.send(
         JSON.stringify({
           success: true,
           message: `Styled ${targetSelector}${scopeLabel}`,
-        })
+        }),
       );
     } else if (action === "undo") {
       const entry = performUndo();
       if (!entry) {
-        socket.send(JSON.stringify({ success: false, message: "Nothing to undo" }));
+        socket.send(
+          JSON.stringify({ success: false, message: "Nothing to undo" }),
+        );
       } else if (entry.error) {
         socket.send(JSON.stringify({ success: false, message: entry.error }));
       } else {
@@ -1577,7 +1770,7 @@ wss.on("connection", (socket) => {
         JSON.stringify({
           success: false,
           message: `Unknown action: ${action}`,
-        })
+        }),
       );
     }
   });

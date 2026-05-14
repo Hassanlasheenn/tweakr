@@ -1194,11 +1194,17 @@ const server = http.createServer((req, res) => {
         const info = { tag, id, classes: classes.filter((c) => !c.startsWith("ng-")), text: "" };
         const match = findMatchingPattern(jsxSource, info);
         if (match) {
-          const openIdx = jsxSource.search(new RegExp(match.opening.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+          const openIdx = jsxSource.search(
+            new RegExp(match.opening.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+          );
           if (openIdx !== -1) {
             const snippet = jsxSource.slice(openIdx, Math.min(openIdx + 600, jsxSource.length));
-            elementMeta.isDynamic = /\{\{[^}]+\}\}|\[[\w.]+\]=|\*ngFor|\*ngIf|\basync\b/.test(snippet);
-            elementMeta.isTranslated = /\|\s*translate|\btransloco\b|\bi18n\b|translate="/.test(snippet);
+            elementMeta.isDynamic = /\{\{[^}]+\}\}|\[[\w.]+\]=|\*ngFor|\*ngIf|\basync\b/.test(
+              snippet
+            );
+            elementMeta.isTranslated = /\|\s*translate|\btransloco\b|\bi18n\b|translate="/.test(
+              snippet
+            );
           }
         }
       }
