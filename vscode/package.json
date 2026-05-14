@@ -2,7 +2,7 @@
   "name": "tweakr-dev",
   "displayName": "Tweakr Visual Editor",
   "description": "Edit your UI visually from the browser. Hover over any element, edit text, change styles, delete elements — source code updates instantly.",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "publisher": "hassanlasheen",
   "license": "MIT",
   "repository": {
