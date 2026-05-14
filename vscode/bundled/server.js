@@ -861,66 +861,6 @@ function findSelectorAcrossFiles(selector, allCssFiles) {
   return found;
 }
 
-// For "This component only" scope: write inline style="…" on the matched element.
-// This is the only reliable way to scope a change to a single element instance —
-// writing to a CSS file (even a component-level one) affects all uses of that component.
-function applyInlineStyle(source, info, styles) {
-  function camelToKebab(s) {
-    return s.replace(/([A-Z])/g, "-$1").toLowerCase();
-  }
-
-  const match = findMatchingPattern(source, info);
-  if (!match) return null;
-
-  const openRegex = new RegExp(match.opening, "s");
-  const m = openRegex.exec(source);
-  if (!m) return null;
-
-  // m[0] matches the opening tag content up to (but not including) the closing > or />.
-  // [^>]* in the pattern may capture a trailing / for self-closing tags.
-  const rawOpening = m[0];
-  const trailingSlashMatch = /(\s*\/)$/.exec(rawOpening);
-  const openingContent = trailingSlashMatch
-    ? rawOpening.slice(0, rawOpening.length - trailingSlashMatch[0].length)
-    : rawOpening;
-  const trailingSuffix = trailingSlashMatch ? trailingSlashMatch[0] : "";
-
-  // Parse existing style attribute (if any) into a map
-  const styleAttrRe = /\bstyle="([^"]*)"/;
-  const existingStyleMatch = styleAttrRe.exec(openingContent);
-  const styleMap = {};
-  if (existingStyleMatch) {
-    existingStyleMatch[1].split(";").forEach((decl) => {
-      const colonIdx = decl.indexOf(":");
-      if (colonIdx > 0) {
-        const k = decl.slice(0, colonIdx).trim();
-        const v = decl.slice(colonIdx + 1).trim();
-        if (k) styleMap[k] = v;
-      }
-    });
-  }
-
-  // Merge new styles (camelCase key → CSS property)
-  for (const [jsxKey, value] of Object.entries(styles)) {
-    styleMap[camelToKebab(jsxKey)] = value;
-  }
-
-  const newStyleStr = Object.entries(styleMap)
-    .map(([k, v]) => `${k}: ${v}`)
-    .join("; ");
-
-  const newOpeningContent = existingStyleMatch
-    ? openingContent.replace(styleAttrRe, `style="${newStyleStr}"`)
-    : openingContent + ` style="${newStyleStr}"`;
-
-  return (
-    source.slice(0, m.index) +
-    newOpeningContent +
-    trailingSuffix +
-    source.slice(m.index + rawOpening.length)
-  );
-}
-
 function findComponentsUsingCssFile(cssFilePath, allJsxFiles) {
   const cssRelPaths = [
     path.basename(cssFilePath),
@@ -1635,39 +1575,6 @@ wss.on("connection", (socket) => {
       const dir = path.dirname(effectiveFilePath);
 
       const editScope = msg.scope || "global";
-
-      // "This component only": write inline style on the element in the template.
-      // Writing to a CSS file (even a component-scoped one) changes ALL instances of a
-      // shared component. Inline style on the specific element is the only true per-instance scope.
-      if (editScope === "local") {
-        const inlineResult = applyInlineStyle(
-          effectiveSource,
-          effectiveMsg,
-          styles,
-        );
-        if (inlineResult !== null) {
-          saveSnapshot(effectiveFilePath, effectiveFile, "edit-style");
-          fs.writeFileSync(effectiveFilePath, inlineResult, "utf-8");
-          const styleDesc = Object.entries(styles)
-            .map(
-              ([k, v]) => `${k.replace(/([A-Z])/g, "-$1").toLowerCase()}: ${v}`,
-            )
-            .join(", ");
-          logChange(
-            "edit-style",
-            effectiveFile,
-            `Inline style on ${desc}: { ${styleDesc} }`,
-          );
-          socket.send(
-            JSON.stringify({
-              success: true,
-              message: `Styled ${desc} (this component only)`,
-            }),
-          );
-          return;
-        }
-        // If element can't be found in template, fall through to CSS override
-      }
 
       const allCssFiles = cache.getAllCssFiles();
       const allJsxFiles = cache.getAllJsxFiles();
