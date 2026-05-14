@@ -912,6 +912,43 @@
           sourceRulesContainer.appendChild(inlineGroup);
         }
 
+        // Computed fallback — show visually significant properties not found in
+        // any source CSS rule (e.g. set by compound selectors like .parent .child)
+        const COMPUTED_VISUAL = [
+          { css: "background-color", type: "color" },
+          { css: "background-image", type: "text" },
+          { css: "border-color", type: "color" },
+          { css: "box-shadow", type: "text" },
+          { css: "opacity", type: "text" },
+        ];
+        const computedFallback = [];
+        for (const { css, type } of COMPUTED_VISUAL) {
+          const jsxKey = cssToCamel(css);
+          if (inputs[jsxKey]) continue; // already shown from a source rule
+          const val = computed.getPropertyValue(css).trim();
+          if (!val || val === "none" || val === "1" || val === "rgba(0, 0, 0, 0)" || val === "transparent") continue;
+          computedFallback.push({ css, jsxKey, type });
+        }
+        if (computedFallback.length > 0) {
+          const computedGroup = document.createElement("div");
+          computedGroup.className = "dom-sync-style-group";
+          const computedTitleRow = document.createElement("div");
+          computedTitleRow.style.cssText = "display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;";
+          const computedTitleSpan = document.createElement("span");
+          computedTitleSpan.className = "dom-sync-style-group-title";
+          computedTitleSpan.textContent = "Computed";
+          const computedHint = document.createElement("span");
+          computedHint.style.cssText = "font-size:10px;opacity:0.4;font-style:italic;";
+          computedHint.textContent = "from compound selectors";
+          computedTitleRow.appendChild(computedTitleSpan);
+          computedTitleRow.appendChild(computedHint);
+          computedGroup.appendChild(computedTitleRow);
+          for (const { css, jsxKey, type } of computedFallback) {
+            createPropRow(css, jsxKey, type, computedGroup);
+          }
+          sourceRulesContainer.appendChild(computedGroup);
+        }
+
         // Show scope toggle if shared rules exist
         if (hasSharedRules) {
           const scopeRow = document.createElement("div");
