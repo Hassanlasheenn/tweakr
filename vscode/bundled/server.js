@@ -548,6 +548,87 @@ function editElement(source, info, newText) {
   return null;
 }
 
+// --- Translation file helpers ---
+
+// Extract the quoted key from {{ "key" | translate }} or {{ 'key' | transloco }}
+function extractTranslateKey(content) {
+  const m = content.match(
+    /\{\{\s*['"]([^'"]+)['"]\s*\|\s*(?:translate|transloco)\b[^}]*\}\}/,
+  );
+  return m ? m[1] : null;
+}
+
+// Walk src/ looking for directories named i18n / locales / translations / lang
+// and collect all .json files inside them.
+function findTranslationFiles(projectRoot) {
+  const results = [];
+  const seen = new Set();
+
+  function collectJson(dir) {
+    if (!fs.existsSync(dir)) return;
+    try {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          collectJson(full);
+        } else if (
+          entry.isFile() &&
+          entry.name.endsWith(".json") &&
+          !seen.has(full)
+        ) {
+          seen.add(full);
+          results.push(full);
+        }
+      }
+    } catch {}
+  }
+
+  function scan(dir, depth) {
+    if (depth > 5 || !fs.existsSync(dir)) return;
+    try {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const full = path.join(dir, entry.name);
+        if (SKIP_DIRS.has(entry.name)) continue;
+        if (
+          /^(i18n|locales?|translations?|lang|languages?)$/i.test(entry.name)
+        ) {
+          collectJson(full);
+        } else {
+          scan(full, depth + 1);
+        }
+      }
+    } catch {}
+  }
+
+  scan(path.join(projectRoot, "src"), 0);
+  return results;
+}
+
+// Read a nested key from a JSON object using dot notation ("header.title")
+function getNestedJsonKey(obj, keyPath) {
+  const parts = keyPath.split(".");
+  let cur = obj;
+  for (const p of parts) {
+    if (cur === null || typeof cur !== "object" || !(p in cur))
+      return undefined;
+    cur = cur[p];
+  }
+  return cur;
+}
+
+// Write a value to a nested key in a JSON object using dot notation
+function setNestedJsonKey(obj, keyPath, value) {
+  const parts = keyPath.split(".");
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (typeof cur[parts[i]] !== "object" || cur[parts[i]] === null)
+      cur[parts[i]] = {};
+    cur = cur[parts[i]];
+  }
+  cur[parts[parts.length - 1]] = value;
+}
+
 /**
  * Build a human-readable descriptor for the element.
  */
@@ -1514,6 +1595,77 @@ wss.on("connection", (socket) => {
         return;
       }
 
+      // If the element uses {{ "key" | translate }}, update the translation JSON
+      // files instead of touching the HTML template.
+      const tmatch = findMatchingPattern(effectiveSource, effectiveMsg);
+      if (tmatch && tmatch.type !== "self-closing") {
+        const contentPat = new RegExp(
+          `${tmatch.opening}>([\\s\\S]*?)</${tmatch.tag}\\s*>`,
+          "s",
+        );
+        const contentMatch = contentPat.exec(effectiveSource);
+        if (contentMatch) {
+          const translateKey = extractTranslateKey(contentMatch[1]);
+          if (translateKey) {
+            const tFiles = findTranslationFiles(process.cwd());
+            if (tFiles.length === 0) {
+              socket.send(
+                JSON.stringify({
+                  success: false,
+                  message: `Element uses translate key "${translateKey}" but no i18n JSON files found`,
+                }),
+              );
+              return;
+            }
+            let updatedCount = 0;
+            for (const tFile of tFiles) {
+              try {
+                const raw = fs.readFileSync(tFile, "utf-8");
+                const json = JSON.parse(raw);
+                if (getNestedJsonKey(json, translateKey) !== undefined) {
+                  saveSnapshot(
+                    tFile,
+                    path.relative(process.cwd(), tFile),
+                    "edit",
+                  );
+                  setNestedJsonKey(json, translateKey, newText);
+                  const indentMatch = raw.match(/\n(\s+)"/);
+                  const indent = indentMatch ? indentMatch[1].length : 2;
+                  fs.writeFileSync(
+                    tFile,
+                    JSON.stringify(json, null, indent) + "\n",
+                    "utf-8",
+                  );
+                  logChange(
+                    "edit",
+                    path.relative(process.cwd(), tFile),
+                    `Translation "${translateKey}" -> "${newText}"`,
+                  );
+                  updatedCount++;
+                }
+              } catch {}
+            }
+            if (updatedCount > 0) {
+              socket.send(
+                JSON.stringify({
+                  success: true,
+                  message: `Updated "${translateKey}" in ${updatedCount} translation file${updatedCount > 1 ? "s" : ""}`,
+                }),
+              );
+            } else {
+              socket.send(
+                JSON.stringify({
+                  success: false,
+                  message: `Key "${translateKey}" not found in any translation file`,
+                }),
+              );
+            }
+            return;
+          }
+        }
+      }
+
+      // No translate pipe — edit text directly in the HTML template
       const result = editElement(effectiveSource, effectiveMsg, newText);
       if (result === null) {
         socket.send(
