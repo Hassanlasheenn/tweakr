@@ -899,9 +899,22 @@
 
         const uniqueFiles = [...new Set([...propMap.values()].filter((p) => p.file).map((p) => p.file))];
         const hasComponent = [...propMap.values()].some((p) => p.scope === "component");
-        const sharedCount = hasSharedRules
-          ? Math.max(...[...propMap.values()].filter((p) => p.isShared).map((p) => p.usedBy.length), 0)
-          : 0;
+
+        // Collect unique component names across ALL shared rules (deduplicated)
+        const sharedUsedBy = new Set();
+        for (const meta of propMap.values()) {
+          if (meta.isShared) {
+            for (const comp of meta.usedBy) sharedUsedBy.add(comp);
+          }
+        }
+        const sharedComponents = [...sharedUsedBy];
+        const sharedCount = sharedComponents.length;
+
+        // Helper: extract a readable name from a file path
+        function componentLabel(filePath) {
+          const name = filePath.split("/").pop() || filePath;
+          return name.replace(/\.(component|page|module|service)\.(ts|html|js)$/, "").replace(/\.(ts|html|js)$/, "");
+        }
 
         if (hasComponent) {
           badgeRow.appendChild(makeBadge("Component", "#a5b4fc", "#1e1b4b",
@@ -911,7 +924,7 @@
           badgeRow.appendChild(makeBadge(
             `⚠ Shared · ${sharedCount} components`,
             "#fbbf24", "#1c1400",
-            `This CSS class is shared across ${sharedCount} components.\nEditing it will change the appearance of ALL of them.`
+            `This CSS class is used by ${sharedCount} components:\n${sharedComponents.map(componentLabel).join("\n")}`
           ));
         }
         if (elementMeta?.isDynamic) {
@@ -927,14 +940,38 @@
         }
         if (badgeRow.children.length > 0) sourceRulesContainer.appendChild(badgeRow);
 
-        // --- Scope toggle (only when shared rules exist) ---
+        // --- Scope toggle + affected components list (only when shared rules exist) ---
         if (hasSharedRules) {
-          // Warning banner explaining the impact
+          // Warning banner with collapsible component list
           const warning = document.createElement("div");
           warning.style.cssText =
-            "font-size:11px;color:#fbbf24;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:8px;padding:7px 10px;margin-bottom:10px;line-height:1.5;";
-          warning.textContent =
-            `⚠ Some styles here are shared across ${sharedCount} components. Choose where to save your changes:`;
+            "font-size:11px;color:#fbbf24;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:8px;padding:8px 10px;margin-bottom:10px;line-height:1.6;";
+
+          const warnHeader = document.createElement("div");
+          warnHeader.style.cssText = "display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;";
+          warnHeader.innerHTML = `<span>⚠ Shared with <strong>${sharedCount} components</strong> — changes affect all of them</span><span style="opacity:0.6;font-size:10px;">▼ show</span>`;
+
+          const compList = document.createElement("div");
+          compList.style.cssText = "display:none;margin-top:7px;padding-top:7px;border-top:1px solid rgba(251,191,36,0.15);display:flex;flex-wrap:wrap;gap:4px;";
+          for (const comp of sharedComponents) {
+            const chip = document.createElement("span");
+            chip.textContent = componentLabel(comp);
+            chip.title = comp;
+            chip.style.cssText =
+              "font-size:10px;padding:2px 7px;border-radius:6px;background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.2);white-space:nowrap;";
+            compList.appendChild(chip);
+          }
+          // Start collapsed, toggle on click
+          compList.style.display = "none";
+          warnHeader.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const open = compList.style.display !== "none";
+            compList.style.display = open ? "none" : "flex";
+            warnHeader.querySelector("span:last-child").textContent = open ? "▼ show" : "▲ hide";
+          });
+
+          warning.appendChild(warnHeader);
+          warning.appendChild(compList);
           sourceRulesContainer.appendChild(warning);
 
           const scopeRow = document.createElement("div");
@@ -942,11 +979,11 @@
           const globalBtn = document.createElement("button");
           globalBtn.className = "dom-sync-scope-btn active";
           globalBtn.textContent = `All ${sharedCount} components`;
-          globalBtn.title = `Save to the shared CSS file — every component using this class will change`;
+          globalBtn.title = `Saves to the shared CSS file — all ${sharedCount} components listed above will change`;
           const localBtn = document.createElement("button");
           localBtn.className = "dom-sync-scope-btn";
           localBtn.textContent = "This component only";
-          localBtn.title = "Add a CSS override in this component's file — other components stay the same";
+          localBtn.title = "Adds a CSS override in this component's file — other components stay the same";
           globalBtn.addEventListener("click", (e) => { e.stopPropagation(); selectedScope = "global"; globalBtn.classList.add("active"); localBtn.classList.remove("active"); });
           localBtn.addEventListener("click", (e) => { e.stopPropagation(); selectedScope = "local"; localBtn.classList.add("active"); globalBtn.classList.remove("active"); });
           scopeRow.appendChild(globalBtn);
@@ -1004,8 +1041,12 @@
                     tag.textContent = "browser-computed";
                     tag.title = "Value comes from a compound CSS selector — edits will be saved to this component's CSS file";
                   } else {
-                    tag.textContent = `shared · ${sharedCount} components`;
-                    tag.title = `This property is in a shared CSS class used by ${sharedCount} components. Use "This component only" to avoid affecting others.`;
+                    const propUsedBy = propMap.get(cssProp)?.usedBy || [];
+                    const propNames = propUsedBy.map(componentLabel).join(", ");
+                    tag.textContent = `shared · ${propUsedBy.length}`;
+                    tag.title = propNames
+                      ? `Used by: ${propNames}\nChoose "This component only" to avoid affecting them.`
+                      : `Shared across multiple components. Choose "This component only" to avoid affecting others.`;
                   }
                   if (row) row.insertBefore(tag, row.querySelector(".dom-sync-remove-btn"));
                 }
