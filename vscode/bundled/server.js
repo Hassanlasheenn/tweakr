@@ -1097,6 +1097,21 @@ const server = http.createServer((req, res) => {
         }
       }
 
+      // Detect element meta: dynamic bindings and translation keys in source
+      const elementMeta = { isDynamic: false, isTranslated: false };
+      if (jsxSource) {
+        const info = { tag, id, classes: classes.filter((c) => !c.startsWith("ng-")), text: "" };
+        const match = findMatchingPattern(jsxSource, info);
+        if (match) {
+          const openIdx = jsxSource.search(new RegExp(match.opening.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+          if (openIdx !== -1) {
+            const snippet = jsxSource.slice(openIdx, Math.min(openIdx + 600, jsxSource.length));
+            elementMeta.isDynamic = /\{\{[^}]+\}\}|\[[\w.]+\]=|\*ngFor|\*ngIf|\basync\b/.test(snippet);
+            elementMeta.isTranslated = /\|\s*translate|\btransloco\b|\bi18n\b|translate="/.test(snippet);
+          }
+        }
+      }
+
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify(
@@ -1104,6 +1119,7 @@ const server = http.createServer((req, res) => {
             cssFile: componentCssFile ? path.relative(process.cwd(), componentCssFile) : null,
             rules,
             inlineStyles,
+            elementMeta,
           },
           null,
           2

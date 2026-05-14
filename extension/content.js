@@ -803,193 +803,208 @@
     const selectorMeta = {}; // { selector: { file, scope, usedBy } }
     // selectedScope is declared at function scope (line 485)
 
+    // Property categories for organized display
+    const PROP_CATEGORIES = [
+      {
+        label: "Appearance",
+        props: [
+          "background-color", "background", "background-image", "opacity",
+          "border-radius", "border", "border-color", "border-width", "border-style",
+          "box-shadow", "outline", "visibility",
+        ],
+      },
+      {
+        label: "Layout",
+        props: [
+          "display", "position", "width", "height", "min-width", "max-width",
+          "min-height", "max-height", "padding", "padding-top", "padding-right",
+          "padding-bottom", "padding-left", "margin", "margin-top", "margin-right",
+          "margin-bottom", "margin-left", "gap", "row-gap", "column-gap",
+          "flex-direction", "align-items", "justify-content", "flex-wrap", "flex",
+          "align-self", "justify-self", "overflow", "overflow-x", "overflow-y",
+          "z-index", "top", "right", "bottom", "left",
+        ],
+      },
+      {
+        label: "Typography",
+        props: [
+          "color", "font-size", "font-weight", "font-family", "line-height",
+          "letter-spacing", "text-align", "text-decoration", "text-transform", "white-space",
+        ],
+      },
+    ];
+    const propToCategory = new Map();
+    for (const cat of PROP_CATEGORIES) {
+      for (const p of cat.props) propToCategory.set(p, cat.label);
+    }
+
+    // Helper to create a context badge
+    function makeBadge(text, color, bg, title) {
+      const b = document.createElement("span");
+      b.textContent = text;
+      b.title = title || "";
+      b.style.cssText = `font-size:10px;font-weight:600;letter-spacing:0.3px;padding:2px 8px;border-radius:10px;background:${bg};color:${color};border:1px solid ${color}33;white-space:nowrap;`;
+      return b;
+    }
+
     fetch(`${SERVER_URL}/agents/styles?${queryParams}`)
       .then((r) => r.json())
       .then((data) => {
-        const { rules, inlineStyles } = data;
+        const { rules, inlineStyles, elementMeta } = data;
+
+        // --- Build merged property map ---
+        // cssProp → { value, selector, scope, file, usedBy, isComputed, isShared }
+        const propMap = new Map();
         let hasSharedRules = false;
 
-        // Show CSS rules grouped by selector
-        if (rules && Object.keys(rules).length > 0) {
+        if (rules) {
           for (const [selector, ruleData] of Object.entries(rules)) {
             if (/:hover|:focus|:active|:visited|::/.test(selector)) continue;
-
-            const isNewFormat = ruleData.props && typeof ruleData.props === "object";
-            const props = isNewFormat ? ruleData.props : ruleData;
-            const file = ruleData.file || null;
+            const props = ruleData.props || ruleData;
             const scope = ruleData.scope || "component";
+            const file = ruleData.file || null;
             const usedBy = ruleData.usedBy || [];
             const isShared = scope === "shared" || scope === "global";
             if (isShared) hasSharedRules = true;
-
             selectorMeta[selector] = { file, scope, usedBy };
+            for (const [cssProp, value] of Object.entries(props)) {
+              if (!propMap.has(cssProp)) {
+                propMap.set(cssProp, { value, selector, scope, file, usedBy, isComputed: false, isShared });
+              }
+            }
+          }
+        }
+
+        if (inlineStyles) {
+          for (const [jsxKey, value] of Object.entries(inlineStyles)) {
+            const cssProp = jsxKey.replace(/([A-Z])/g, "-$1").toLowerCase();
+            if (!propMap.has(cssProp)) {
+              propMap.set(cssProp, { value, selector: "inline", scope: "inline", file: null, usedBy: [], isComputed: false, isShared: false });
+            }
+          }
+        }
+
+        // Computed fallbacks for key visual properties not found in source rules
+        // (e.g. background-color set via compound selector like .parent .child)
+        for (const cssProp of ["background-color", "background-image", "border-color", "box-shadow", "opacity"]) {
+          if (propMap.has(cssProp)) continue;
+          const val = computed.getPropertyValue(cssProp).trim();
+          if (!val || val === "none" || val === "1" || val === "rgba(0, 0, 0, 0)" || val === "transparent") continue;
+          propMap.set(cssProp, { value: val, selector: "computed", scope: "computed", file: null, usedBy: [], isComputed: true, isShared: false });
+        }
+
+        // --- Element context badges ---
+        const badgeRow = document.createElement("div");
+        badgeRow.style.cssText = "display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;";
+
+        const uniqueFiles = [...new Set([...propMap.values()].filter((p) => p.file).map((p) => p.file))];
+        const hasComponent = [...propMap.values()].some((p) => p.scope === "component");
+
+        if (hasComponent) {
+          badgeRow.appendChild(makeBadge("Component", "#a5b4fc", "#1e1b4b",
+            uniqueFiles.filter((f) => f.scope === "component").join("\n") || uniqueFiles[0] || ""));
+        }
+        if (hasSharedRules) {
+          const sharedCount = Math.max(...[...propMap.values()].filter((p) => p.isShared).map((p) => p.usedBy.length), 0);
+          badgeRow.appendChild(makeBadge(
+            `Shared${sharedCount > 1 ? ` (${sharedCount})` : ""}`,
+            "#fbbf24", "#1c1400",
+            "This style is used by multiple components — editing affects all of them"
+          ));
+        }
+        if (elementMeta?.isDynamic) {
+          badgeRow.appendChild(makeBadge("Dynamic data", "#60a5fa", "#0c1a2e",
+            "Element contains backend-bound data (Angular bindings, *ngFor, *ngIf)"));
+        }
+        if (elementMeta?.isTranslated) {
+          badgeRow.appendChild(makeBadge("Translated", "#c084fc", "#180a2e",
+            "Text is a translation key (| translate / i18n)"));
+        }
+        if (propMap.size === 0) {
+          badgeRow.appendChild(makeBadge("No styles detected", "#9ca3af", "#111", ""));
+        }
+        if (badgeRow.children.length > 0) sourceRulesContainer.appendChild(badgeRow);
+
+        // --- Scope toggle (if shared rules exist) ---
+        if (hasSharedRules) {
+          const scopeRow = document.createElement("div");
+          scopeRow.className = "dom-sync-scope-toggle";
+          const scopeLabel = document.createElement("span");
+          scopeLabel.className = "dom-sync-edit-label";
+          scopeLabel.textContent = "Apply to";
+          scopeLabel.style.minWidth = "auto";
+          const globalBtn = document.createElement("button");
+          globalBtn.className = "dom-sync-scope-btn active";
+          globalBtn.textContent = "All components";
+          globalBtn.title = "Edit the shared CSS file — affects all components using this class";
+          const localBtn = document.createElement("button");
+          localBtn.className = "dom-sync-scope-btn";
+          localBtn.textContent = "This component";
+          localBtn.title = "Create a local override in this component's CSS file only";
+          globalBtn.addEventListener("click", (e) => { e.stopPropagation(); selectedScope = "global"; globalBtn.classList.add("active"); localBtn.classList.remove("active"); });
+          localBtn.addEventListener("click", (e) => { e.stopPropagation(); selectedScope = "local"; localBtn.classList.add("active"); globalBtn.classList.remove("active"); });
+          scopeRow.appendChild(scopeLabel);
+          scopeRow.appendChild(globalBtn);
+          scopeRow.appendChild(localBtn);
+          sourceRulesContainer.appendChild(scopeRow);
+        }
+
+        // --- Render props by visual category ---
+        if (propMap.size > 0) {
+          const byCategory = { Appearance: [], Layout: [], Typography: [], Other: [] };
+          for (const [cssProp, meta] of propMap.entries()) {
+            const cat = propToCategory.get(cssProp) || "Other";
+            byCategory[cat].push([cssProp, meta]);
+          }
+
+          for (const { label } of [...PROP_CATEGORIES, { label: "Other" }]) {
+            const entries = byCategory[label];
+            if (!entries || entries.length === 0) continue;
 
             const groupEl = document.createElement("div");
             groupEl.className = "dom-sync-style-group";
 
-            // Title row: selector name (shortened for readability) + badges
             const titleRow = document.createElement("div");
-            titleRow.style.cssText = "display:flex;align-items:center;gap:6px;flex-wrap:wrap;";
-
-            const title = document.createElement("span");
-            title.className = "dom-sync-style-group-title";
-            // Show last BEM segment as the readable label; full selector in tooltip
-            const shortName = selector.replace(/^.*[__\-]([a-z0-9-]+)$/, "$1") || selector;
-            title.textContent = shortName !== selector ? shortName : selector;
-            title.title = selector;
-            titleRow.appendChild(title);
-
-            if (isShared) {
-              const badge = document.createElement("span");
-              badge.className = "dom-sync-scope-badge";
-              badge.textContent = scope === "global" ? "Global" : `Shared (${usedBy.length})`;
-              badge.title = usedBy.length > 0 ? `Used by: ${usedBy.join(", ")}` : "";
-              titleRow.appendChild(badge);
-            }
-
-            if (file) {
-              const fileLabel = document.createElement("span");
-              fileLabel.className = "dom-sync-file-label";
-              fileLabel.textContent = file.split("/").pop();
-              fileLabel.title = file;
-              titleRow.appendChild(fileLabel);
-            }
-
+            titleRow.style.cssText = "display:flex;align-items:center;gap:6px;margin-bottom:2px;";
+            const titleSpan = document.createElement("span");
+            titleSpan.className = "dom-sync-style-group-title";
+            titleSpan.textContent = label;
+            titleRow.appendChild(titleSpan);
             groupEl.appendChild(titleRow);
 
-            for (const [cssProp, value] of Object.entries(props)) {
+            for (const [cssProp, { value, isComputed, isShared }] of entries) {
               const jsxKey = cssToCamel(cssProp);
               if (inputs[jsxKey]) continue;
               const isColor = isColorProp(cssProp);
-              createPropRow(cssProp, jsxKey, isColor ? "color" : "text", groupEl);
+              const row = createPropRow(cssProp, jsxKey, isColor ? "color" : "text", groupEl);
               if (inputs[jsxKey]) {
-                // For color inputs: CSS variables (var(--x)) can't be rendered in a color picker.
-                // Keep the computed color (already set by createPropRow) so the picker works.
-                // For plain values, show the source value directly.
                 const isExpression = /^var\(|^calc\(|^env\(|^clamp\(/.test(value);
                 if (!isColor || !isExpression) {
                   inputs[jsxKey].value = value;
                   initialValues[jsxKey] = value;
                 }
-                // For color + CSS var: add a tooltip showing the variable name
                 if (isColor && isExpression) {
                   inputs[jsxKey].title = `Source: ${value}`;
-                  const row = inputs[jsxKey].closest(".dom-sync-style-row");
-                  if (row) {
-                    const hint = document.createElement("span");
-                    hint.style.cssText =
-                      "font-size:10px;opacity:0.5;margin-left:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;";
-                    hint.textContent = value;
-                    hint.title = value;
-                    row.insertBefore(hint, row.querySelector(".dom-sync-remove-btn"));
-                  }
+                  const hint = document.createElement("span");
+                  hint.style.cssText = "font-size:10px;opacity:0.5;margin-left:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;";
+                  hint.textContent = value;
+                  hint.title = value;
+                  if (row) row.insertBefore(hint, row.querySelector(".dom-sync-remove-btn"));
+                }
+                // Tag computed/shared source inline
+                if (isComputed || isShared) {
+                  const tag = document.createElement("span");
+                  tag.style.cssText = `font-size:9px;opacity:0.45;font-style:italic;margin-left:2px;color:${isShared ? "#fbbf24" : "#9ca3af"};`;
+                  tag.textContent = isComputed ? "computed" : "shared";
+                  if (row) row.insertBefore(tag, row.querySelector(".dom-sync-remove-btn"));
                 }
               }
             }
 
             sourceRulesContainer.appendChild(groupEl);
           }
-        }
-
-        // Show inline styles from JSX source
-        if (inlineStyles && Object.keys(inlineStyles).length > 0) {
-          const inlineGroup = document.createElement("div");
-          inlineGroup.className = "dom-sync-style-group";
-          const inlineTitle = document.createElement("span");
-          inlineTitle.className = "dom-sync-style-group-title";
-          inlineTitle.textContent = "Inline Styles";
-          inlineGroup.appendChild(inlineTitle);
-
-          for (const [jsxKey, value] of Object.entries(inlineStyles)) {
-            if (inputs[jsxKey]) continue;
-            const cssProp = jsxKey.replace(/([A-Z])/g, "-$1").toLowerCase();
-            const type = isColorProp(cssProp) ? "color" : "text";
-            createPropRow(cssProp, jsxKey, type, inlineGroup);
-            if (inputs[jsxKey]) inputs[jsxKey].value = value;
-            initialValues[jsxKey] = value;
-          }
-
-          sourceRulesContainer.appendChild(inlineGroup);
-        }
-
-        // Computed fallback — show visually significant properties not found in
-        // any source CSS rule (e.g. set by compound selectors like .parent .child)
-        const COMPUTED_VISUAL = [
-          { css: "background-color", type: "color" },
-          { css: "background-image", type: "text" },
-          { css: "border-color", type: "color" },
-          { css: "box-shadow", type: "text" },
-          { css: "opacity", type: "text" },
-        ];
-        const computedFallback = [];
-        for (const { css, type } of COMPUTED_VISUAL) {
-          const jsxKey = cssToCamel(css);
-          if (inputs[jsxKey]) continue; // already shown from a source rule
-          const val = computed.getPropertyValue(css).trim();
-          if (!val || val === "none" || val === "1" || val === "rgba(0, 0, 0, 0)" || val === "transparent") continue;
-          computedFallback.push({ css, jsxKey, type });
-        }
-        if (computedFallback.length > 0) {
-          const computedGroup = document.createElement("div");
-          computedGroup.className = "dom-sync-style-group";
-          const computedTitleRow = document.createElement("div");
-          computedTitleRow.style.cssText = "display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;";
-          const computedTitleSpan = document.createElement("span");
-          computedTitleSpan.className = "dom-sync-style-group-title";
-          computedTitleSpan.textContent = "Computed";
-          const computedHint = document.createElement("span");
-          computedHint.style.cssText = "font-size:10px;opacity:0.4;font-style:italic;";
-          computedHint.textContent = "from compound selectors";
-          computedTitleRow.appendChild(computedTitleSpan);
-          computedTitleRow.appendChild(computedHint);
-          computedGroup.appendChild(computedTitleRow);
-          for (const { css, jsxKey, type } of computedFallback) {
-            createPropRow(css, jsxKey, type, computedGroup);
-          }
-          sourceRulesContainer.appendChild(computedGroup);
-        }
-
-        // Show scope toggle if shared rules exist
-        if (hasSharedRules) {
-          const scopeRow = document.createElement("div");
-          scopeRow.className = "dom-sync-scope-toggle";
-
-          const scopeLabel = document.createElement("span");
-          scopeLabel.className = "dom-sync-edit-label";
-          scopeLabel.textContent = "Apply to";
-          scopeLabel.style.minWidth = "auto";
-
-          const globalBtn = document.createElement("button");
-          globalBtn.className = "dom-sync-scope-btn active";
-          globalBtn.textContent = "All components";
-          globalBtn.title = "Edit the shared CSS file — affects all components using this class";
-
-          const localBtn = document.createElement("button");
-          localBtn.className = "dom-sync-scope-btn";
-          localBtn.textContent = "This component";
-          localBtn.title = "Create a local override in this component's CSS file only";
-
-          globalBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            selectedScope = "global";
-            globalBtn.classList.add("active");
-            localBtn.classList.remove("active");
-          });
-          localBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            selectedScope = "local";
-            localBtn.classList.add("active");
-            globalBtn.classList.remove("active");
-          });
-
-          scopeRow.appendChild(scopeLabel);
-          scopeRow.appendChild(globalBtn);
-          scopeRow.appendChild(localBtn);
-          sourceRulesContainer.insertBefore(scopeRow, sourceRulesContainer.firstChild);
-        }
-
-        // If no source rules found, show default groups as fallback
-        if (sourceRulesContainer.querySelectorAll(".dom-sync-style-group").length === 0) {
+        } else {
+          // Fallback: show default groups when no styles found at all
           STYLE_GROUPS.forEach((group) => {
             const groupEl = document.createElement("div");
             groupEl.className = "dom-sync-style-group";
@@ -997,15 +1012,12 @@
             title.className = "dom-sync-style-group-title";
             title.textContent = group.name;
             groupEl.appendChild(title);
-            group.props.forEach((prop) => {
-              createPropRow(prop.css, prop.jsxKey, prop.type, groupEl);
-            });
+            group.props.forEach((prop) => createPropRow(prop.css, prop.jsxKey, prop.type, groupEl));
             sourceRulesContainer.appendChild(groupEl);
           });
         }
       })
       .catch(() => {
-        // Fallback to default groups if server unreachable
         STYLE_GROUPS.forEach((group) => {
           const groupEl = document.createElement("div");
           groupEl.className = "dom-sync-style-group";
@@ -1013,9 +1025,7 @@
           title.className = "dom-sync-style-group-title";
           title.textContent = group.name;
           groupEl.appendChild(title);
-          group.props.forEach((prop) => {
-            createPropRow(prop.css, prop.jsxKey, prop.type, groupEl);
-          });
+          group.props.forEach((prop) => createPropRow(prop.css, prop.jsxKey, prop.type, groupEl));
           sourceRulesContainer.appendChild(groupEl);
         });
       });
